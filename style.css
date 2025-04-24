@@ -1,0 +1,514 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+.dashboard {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #2d1b4c;
+    color: white;
+    padding: 20px;
+}
+
+.logo {
+    padding: 20px 0;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 20px;
+}
+
+.logo-img {
+    max-width: 150px; /* Ajuste o tamanho máximo da imagem */
+    height: auto;
+}
+.logo h2 {
+    color: #9b59b6;
+}
+
+.sidebar nav ul {
+    list-style: none;
+}
+
+.sidebar nav ul li {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.3s;
+    border-radius: 8px;
+    margin-bottom: 5px;
+}
+
+.sidebar nav ul li:hover, .sidebar nav ul li.active {
+    background-color: #9b59b6;
+}
+
+.sidebar nav ul li span {
+    margin-right: 10px;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    background-color: #1a1a1a;
+}
+
+header {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #9b59b6;
+}
+
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.card-icon {
+    background-color: #9b59b6;
+    color: white;
+    padding: 15px;
+    border-radius: 50%;
+    margin-right: 15px;
+}
+
+.card-info h3 {
+    font-size: 0.9em;
+    color: #9b59b6;
+    margin-bottom: 5px;
+}
+
+.number {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #fff;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+form {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #9b59b6;
+    border-radius: 4px;
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+button {
+    background-color: #9b59b6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background-color: #8e44ad;
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.export-btn, #close-cash-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    background-color: #9b59b6;
+    border: 2px solid #fff;
+}
+
+.export-btn:hover, #close-cash-btn:hover {
+    background-color: #8e44ad;
+    border-color: #9b59b6;
+}
+
+.export-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.export-filter label {
+    color: #9b59b6;
+}
+
+.export-filter input[type="date"] {
+    padding: 8px;
+    border: 1px solid #9b59b6;
+    border-radius: 4px;
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+.appointment-card {
+    background-color: #2d1b4c;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.client-card, .service-card, .professional-card, .product-card, .sale-card, .withdrawal-card {
+    background-color: #2d1b4c;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.client-card:hover, .service-card:hover, .professional-card:hover, .product-card:hover, .sale-card:hover, .withdrawal-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px #9b59b6;
+}
+
+.client-card p, .service-card p, .professional-card p, .product-card p, .sale-card p, .withdrawal-card p {
+    margin-bottom: 5px;
+}
+
+#clients-list h2, #services-list h2, #professionals-list h2, #products-list h2, #sales-list h2, #withdrawals-list h2 {
+    margin: 20px 0;
+    color: #9b59b6;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #9b59b6;
+    border-radius: 4px;
+    background-color: #1a1a1a;
+    color: #fff;
+    min-height: 100px;
+    resize: vertical;
+}
+
+.selected-item {
+    background-color: #2d1b4c;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.sale-items h4 {
+    margin: 15px 0 10px;
+    color: #9b59b6;
+}
+
+#selected-items {
+    margin: 20px 0;
+}
+
+.sale-total {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #9b59b6;
+    text-align: right;
+}
+
+.financial-summary {
+    padding: 20px;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.summary-card h3 {
+    color: #9b59b6;
+    margin-bottom: 10px;
+}
+
+.summary-card p {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.chart-wrapper {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    height: 300px;
+}
+
+.ranking-section {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid 
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+.ranking-position {
+    font-weight: bold;
+    color: #9b59b6;
+}
+
+.sales-history {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.payment-methods-report, .withdrawals-report {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.payment-methods-report h3, .withdrawals-report h3 {
+    color: #9b59b6;
+    margin-bottom: 20px;
+}
+
+.pdv-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.pdv-form, .pdv-items {
+    background-color: #2d1b4c;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.pdv-form h3, .pdv-items h3 {
+    color: #9b59b6;
+    margin-bottom: 15px;
+}
+
+.cash-register {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #9b59b6;
+    border-radius: 8px;
+}
+
+.cash-register h3 {
+    margin-bottom: 10px;
+}
+
+#cash-status {
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.cash-open {
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+.cash-closed {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+#finalize-sale, #withdraw-btn, #close-cash-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .main-content {
+        padding: 10px;
+    }
+
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .pdv-container {
+        grid-template-columns: 1fr;
+    }
+
+    .card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .card-icon {
+        margin: 0 0 10px 0;
+    }
+
+    .logo-img {
+        max-width: 120px; /* Ajuste para telas menores */
+    }
+
+    form {
+        padding: 15px;
+    }
+
+    input, select, textarea {
+        font-size: 16px;
+    }
+
+    .client-card, .service-card, .professional-card, .product-card, .sale-card, .withdrawal-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .header-content {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    button, .export-btn, #close-cash-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .selected-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .export-filter {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar nav ul li {
+        padding: 10px;
+    }
+
+    .logo-img {
+        max-width: 100px; /* Ajuste para telas muito pequenas */
+    }
+
+    h1, h2 {
+        font-size: 1.5em;
+    }
+
+    .chart-wrapper {
+        height: 250px;
+        padding: 10px;
+    }
+}

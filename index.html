@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JvBarberShop - Dashboard</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="https://media.discordapp.net/attachments/1146562335092252683/1364770551708520489/logo.png?ex=680ae11f&is=68098f9f&hm=1882ab96354e454303427ecc7f0fdc630f8ac8c1f59260a572605fdf5ec4f090&=&format=webp&quality=lossless&width=788&height=788" alt="JV Barber Shop Logo" class="logo-img">
+            </div>
+            <nav>
+                <ul>
+                    <li class="active" data-page="dashboard">
+                        <span class="material-icons">dashboard</span>
+                        <span>Dashboard</span>
+                    </li>
+                    <li data-page="agendamentos">
+                        <span class="material-icons">event</span>
+                        <span>Agendamentos</span>
+                    </li>
+                    <li data-page="clientes">
+                        <span class="material-icons">people</span>
+                        <span>Clientes</span>
+                    </li>
+                    <li data-page="servicos">
+                        <span class="material-icons">content_cut</span>
+                        <span>Serviços</span>
+                    </li>
+                    <li data-page="profissionais">
+                        <span class="material-icons">person</span>
+                        <span>Profissionais</span>
+                    </li>
+                    <li data-page="produtos">
+                        <span class="material-icons">inventory</span>
+                        <span>Produtos</span>
+                    </li>
+                    <li data-page="vendas">
+                        <span class="material-icons">point_of_sale</span>
+                        <span>Vendas</span>
+                    </li>
+                    <li data-page="financeiro">
+                        <span class="material-icons">attach_money</span>
+                        <span>Financeiro</span>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <div class="header-content">
+                    <h1>Dashboard</h1>
+                    <div class="user-info">
+                        <span class="material-icons">account_circle</span>
+                        <span>Admin</span>
+                    </div>
+                </div>
+            </header>
+
+            <div id="page-dashboard" class="page active">
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <div class="card-icon">
+                            <span class="material-icons">content_cut</span>
+                        </div>
+                        <div class="card-info">
+                            <h3>Total de Cortes</h3>
+                            <p class="number" id="total-haircuts">0</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">
+                            <span class="material-icons">people</span>
+                        </div>
+                        <div class="card-info">
+                            <h3>Total Clientes</h3>
+                            <p class="number" id="total-clients">0</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">
+                            <span class="material-icons">attach_money</span>
+                        </div>
+                        <div class="card-info">
+                            <h3>Receita Total</h3>
+                            <p class="number" id="total-revenue">R$ 0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <canvas id="barbers-performance-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="revenue-by-barber-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-clientes" class="page">
+                <h2>Cadastro de Cliente</h2>
+                <form id="client-form">
+                    <input type="text" id="new-client-name" placeholder="Nome do Cliente" required>
+                    <input type="text" id="new-client-phone" placeholder="+1 (508) 939-1881" required>
+                    <input type="email" id="new-client-email" placeholder="Email">
+                    <button type="submit">Cadastrar Cliente</button>
+                </form>
+                <div id="clients-list"></div>
+            </div>
+
+            <div id="page-servicos" class="page">
+                <h2>Gerenciar Serviços</h2>
+                <form id="service-form">
+                    <input type="text" id="service-name" placeholder="Nome do Serviço" required>
+                    <input type="number" id="service-price" placeholder="Preço" required>
+                    <textarea id="service-description" placeholder="Descrição do serviço"></textarea>
+                    <button type="submit">Adicionar Serviço</button>
+                </form>
+                <div id="services-list"></div>
+            </div>
+
+            <div id="page-agendamentos" class="page">
+                <h2>Novo Agendamento</h2>
+                <form id="appointment-form">
+                    <input type="text" id="client-name" placeholder="Nome do Cliente" required>
+                    <input type="date" id="date" required>
+                    <input type="time" id="time" required>
+                    <select id="service" required>
+                        <option value="">Selecione o Serviço</option>
+                        <option value="corte">Corte</option>
+                        <option value="barba">Barba</option>
+                        <option value="corte-barba">Corte + Barba</option>
+                    </select>
+                    <select id="barber" required>
+                        <option value="">Selecione o Barbeiro</option>
+                    </select>
+                    <button type="submit">Agendar</button>
+                </form>
+                <div id="appointments-list"></div>
+            </div>
+
+            <div id="page-profissionais" class="page">
+                <h2>Gerenciar Profissionais</h2>
+                <form id="professional-form">
+                    <input type="text" id="professional-name" placeholder="Nome do Profissional" required>
+                    <input type="tel" id="professional-phone" placeholder="Telefone" required>
+                    <input type="email" id="professional-email" placeholder="Email">
+                    <input type="text" id="professional-specialty" placeholder="Especialidade">
+                    <button type="submit">Adicionar Profissional</button>
+                </form>
+                <div id="professionals-list"></div>
+            </div>
+
+            <div id="page-produtos" class="page">
+                <h2>Gerenciar Produtos</h2>
+                <form id="product-form">
+                    <input type="text" id="product-name" placeholder="Nome do Produto" required>
+                    <input type="number" id="product-price" placeholder="Preço" required>
+                    <input type="number" id="product-stock" placeholder="Quantidade em Estoque" required>
+                    <textarea id="product-description" placeholder="Descrição do produto"></textarea>
+                    <button type="submit">Adicionar Produto</button>
+                </form>
+                <div id="products-list"></div>
+            </div>
+
+            <div id="page-financeiro" class="page">
+                <h2>Financeiro</h2>
+                <div class="financial-summary">
+                    <div class="export-filter">
+                        <label for="start-date">Data Início:</label>
+                        <input type="date" id="start-date">
+                        <label for="end-date">Data Fim:</label>
+                        <input type="date" id="end-date">
+                        <button id="export-btn" class="export-btn">Exportar para PDF</button>
+                    </div>
+                    <div id="feedback" class="feedback"></div>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <h3>Vendas Hoje</h3>
+                            <p id="today-sales">R$ 0,00</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>Vendas no Mês</h3>
+                            <p id="month-sales">R$ 0,00</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>Total de Vendas</h3>
+                            <p id="total-sales">R$ 0,00</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>Saldo do Caixa</h3>
+                            <p id="cash-balance">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="payment-methods-report">
+                        <h3>Vendas Hoje por Método de Pagamento</h3>
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <h3>Dinheiro</h3>
+                                <p id="today-dinheiro">R$ 0,00</p>
+                            </div>
+                            <div class="summary-card">
+                                <h3>Cartão de Crédito</h3>
+                                <p id="today-cartao_credito">R$ 0,00</p>
+                            </div>
+                            <div class="summary-card">
+                                <h3>Cartão de Débito</h3>
+                                <p id="today-cartao_debito">R$ 0,00</p>
+                            </div>
+                            <div class="summary-card">
+                                <h3>Pix</h3>
+                                <p id="today-pix">R$ 0,00</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="withdrawals-report">
+                        <h3>Retiradas Hoje</h3>
+                        <div id="withdrawals-list"></div>
+                    </div>
+                    <div class="charts-container">
+                        <div class="chart-wrapper">
+                            <canvas id="sales-chart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="barbers-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="ranking-section">
+                        <h3>Ranking de Profissionais</h3>
+                        <div id="barbers-ranking"></div>
+                    </div>
+                    <div class="sales-history">
+                        <h3>Histórico de Vendas</h3>
+                        <div id="financial-sales-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-vendas" class="page">
+                <h2>Ponto de Venda</h2>
+                <div class="pdv-container">
+                    <div class="pdv-form">
+                        <div class="cash-register">
+                            <h3>Caixa Diário</h3>
+                            <div id="cash-status" class="cash-closed">Caixa Fechado</div>
+                            <p>Saldo Atual: R$ <span id="cash-balance-display">0.00</span></p>
+                            <form id="cash-form">
+                                <input type="number" id="cash-initial" placeholder="Valor Inicial (R$)" step="0.01" min="0" required>
+                                <button type="submit" id="open-cash-btn">Abrir Caixa</button>
+                            </form>
+                            <button id="close-cash-btn" disabled>Fechar Caixa</button>
+                            <form id="withdrawal-form">
+                                <input type="number" id="withdrawal-amount" placeholder="Valor da Retirada (R$)" step="0.01" min="0" required>
+                                <input type="text" id="withdrawal-reason" placeholder="Motivo da Retirada" required>
+                                <button type="submit" id="withdraw-btn" disabled>Registrar Retirada</button>
+                            </form>
+                        </div>
+                        <h3>Registrar Venda</h3>
+                        <form id="sales-form">
+                            <select id="sale-professional" required>
+                                <option value="">Selecione o Profissional</option>
+                            </select>
+                            <select id="payment-method" required>
+                                <option value="">Selecione o Método de Pagamento</option>
+                                <option value="dinheiro">Dinheiro</option>
+                                <option value="cartao_credito">Cartão de Crédito</option>
+                                <option value="cartao_debito">Cartão de Débito</option>
+                                <option value="pix">Pix</option>
+                            </select>
+                            <div class="sale-items">
+                                <h4>Serviços</h4>
+                                <select id="sale-service">
+                                    <option value="">Selecione o Serviço</option>
+                                </select>
+                                <button type="button" id="add-service">Adicionar Serviço</button>
+                                <h4>Produtos</h4>
+                                <select id="sale-product">
+                                    <option value="">Selecione o Produto</option>
+                                </select>
+                                <input type="number" id="sale-quantity" placeholder="Quantidade" min="1" value="1">
+                                <button type="button" id="add-product">Adicionar Produto</button>
+                            </div>
+                            <button type="submit" id="finalize-sale" disabled>Finalizar Venda</button>
+                        </form>
+                    </div>
+                    <div class="pdv-items">
+                        <h3>Itens Selecionados</h3>
+                        <div id="selected-items"></div>
+                        <p class="sale-total">Total: R$ <span id="sale-total">0.00</span></p>
+                    </div>
+                </div>
+                <div id="sales-list"></div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
