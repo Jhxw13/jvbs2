@@ -12,21 +12,40 @@ body {
 
 .dashboard {
     display: flex;
-    min-height: 100vh;
+    min-height: 100vh; /* Garante altura mínima, sem restringir */
 }
 
 .sidebar {
     width: 250px;
     background-color: #2d1b4c;
     color: white;
-    padding: 20px;
+    padding: 15px; /* Espaçamento reduzido */
+    position: fixed; /* Fixa na lateral esquerda */
+    top: 0;
+    left: 0;
+    min-height: 100vh; /* Altura mínima, ajusta ao conteúdo */
+    overflow-y: auto; /* Permite rolagem se necessário */
+    z-index: 1000; /* Fica acima de outros elementos */
 }
 
 .logo {
-    padding: 20px 0;
+    padding: 15px 0; /* Espaçamento reduzido */
     text-align: center;
     border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+}
+
+.logo1 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px; /* Espaçamento reduzido */
+}
+
+.logo-img {
+    max-width: 80px; /* Tamanho reduzido para evitar overflow */
+    height: auto;
+    object-fit: contain;
 }
 
 .logo h2 {
@@ -38,13 +57,13 @@ body {
 }
 
 .sidebar nav ul li {
-    padding: 15px;
+    padding: 12px; /* Espaçamento reduzido */
     display: flex;
     align-items: center;
     cursor: pointer;
     transition: background 0.3s;
     border-radius: 8px;
-    margin-bottom: 5px;
+    margin-bottom: 3px; /* Espaçamento reduzido */
 }
 
 .sidebar nav ul li:hover,
@@ -53,13 +72,40 @@ body {
 }
 
 .sidebar nav ul li i {
-    margin-right: 10px;
+    margin-right: 8px;
+}
+
+/* Estilizar a barra de rolagem para harmonia */
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #2d1b4c;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #9b59b6;
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #8e44ad;
+}
+
+/* Suporte para Firefox */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #9b59b6 #2d1b4c;
 }
 
 .main-content {
     flex: 1;
     padding: 20px;
     background-color: #1a1a1a;
+    margin-left: 250px; /* Compensa a largura da sidebar */
+    min-height: 100vh; /* Altura mínima */
+    position: relative; /* Garante alinhamento ao topo */
 }
 
 header {
@@ -67,12 +113,14 @@ header {
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
+    position: relative; /* Garante que o header comece no topo */
 }
 
 .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%; /* Garante que ocupe o espaço disponível */
 }
 
 .user-info {
@@ -484,7 +532,15 @@ input[type="file"] {
 
     .sidebar {
         width: 100%;
+        min-height: auto; /* Ajusta a altura para dispositivos móveis */
+        position: static; /* Remove position fixed */
         padding: 10px;
+    }
+
+    .main-content {
+        margin-left: 0; /* Remove o deslocamento */
+        padding: 10px;
+        min-height: auto; /* Ajusta a altura */
     }
 
     .sidebar nav ul {
@@ -496,10 +552,11 @@ input[type="file"] {
     .sidebar nav ul li {
         flex: 1 1 auto;
         text-align: center;
+        padding: 10px;
     }
 
-    .main-content {
-        padding: 10px;
+    .logo-img {
+        max-width: 60px; /* Logo menor em telas pequenas */
     }
 
     .charts-container,
@@ -549,7 +606,7 @@ input[type="file"] {
 
 @media (max-width: 480px) {
     .sidebar nav ul li {
-        padding: 10px;
+        padding: 8px;
     }
 
     h1, h2 {
