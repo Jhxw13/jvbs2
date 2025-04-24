@@ -29,10 +29,6 @@ body {
     margin-bottom: 20px;
 }
 
-.logo-img {
-    max-width: 150px; /* Ajuste o tamanho máximo da imagem */
-    height: auto;
-}
 .logo h2 {
     color: #9b59b6;
 }
@@ -51,11 +47,12 @@ body {
     margin-bottom: 5px;
 }
 
-.sidebar nav ul li:hover, .sidebar nav ul li.active {
+.sidebar nav ul li:hover,
+.sidebar nav ul li.active {
     background-color: #9b59b6;
 }
 
-.sidebar nav ul li span {
+.sidebar nav ul li i {
     margin-right: 10px;
 }
 
@@ -135,7 +132,19 @@ form {
     margin-bottom: 20px;
 }
 
-input, select {
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    color: #9b59b6;
+    margin-bottom: 5px;
+    display: block;
+}
+
+input,
+select,
+textarea {
     width: 100%;
     padding: 10px;
     margin-bottom: 10px;
@@ -143,6 +152,21 @@ input, select {
     border-radius: 4px;
     background-color: #1a1a1a;
     color: #fff;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
 }
 
 button {
@@ -164,32 +188,31 @@ button:disabled {
     cursor: not-allowed;
 }
 
-.export-btn, #close-cash-btn {
+.export-btn,
+#close-cash-btn,
+#finalize-sale,
+#withdraw-btn {
     width: 100%;
     padding: 15px;
     font-size: 1.2em;
     margin-bottom: 20px;
-    background-color: #9b59b6;
-    border: 2px solid #fff;
 }
 
-.export-btn:hover, #close-cash-btn:hover {
-    background-color: #8e44ad;
-    border-color: #9b59b6;
-}
-
-.export-filter {
+.export-filter,
+.backup-controls {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 20px;
 }
 
-.export-filter label {
+.export-filter label,
+.backup-label {
     color: #9b59b6;
 }
 
-.export-filter input[type="date"] {
+.export-filter input[type="date"],
+input[type="file"] {
     padding: 8px;
     border: 1px solid #9b59b6;
     border-radius: 4px;
@@ -197,17 +220,13 @@ button:disabled {
     color: #fff;
 }
 
-.appointment-card {
-    background-color: #2d1b4c;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.client-card, .service-card, .professional-card, .product-card, .sale-card, .withdrawal-card {
+.appointment-card,
+.client-card,
+.service-card,
+.professional-card,
+.product-card,
+.sale-card,
+.withdrawal-card {
     background-color: #2d1b4c;
     padding: 15px;
     margin-bottom: 10px;
@@ -218,30 +237,53 @@ button:disabled {
     transition: all 0.3s ease;
 }
 
-.client-card:hover, .service-card:hover, .professional-card:hover, .product-card:hover, .sale-card:hover, .withdrawal-card:hover {
+.appointment-card:hover,
+.client-card:hover,
+.service-card:hover,
+.professional-card:hover,
+.product-card:hover,
+.sale-card:hover,
+.withdrawal-card:hover {
     transform: scale(1.02);
     box-shadow: 0 0 15px #9b59b6;
 }
 
-.client-card p, .service-card p, .professional-card p, .product-card p, .sale-card p, .withdrawal-card p {
+.appointment-card p,
+.client-card p,
+.service-card p,
+.professional-card p,
+.product-card p,
+.sale-card p,
+.withdrawal-card p {
     margin-bottom: 5px;
 }
 
-#clients-list h2, #services-list h2, #professionals-list h2, #products-list h2, #sales-list h2, #withdrawals-list h2 {
-    margin: 20px 0;
-    color: #9b59b6;
+.appointment-card button,
+.client-card button,
+.service-card button,
+.professional-card button,
+.product-card button {
+    background-color: #e74c3c;
+    padding: 8px 12px;
 }
 
-textarea {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #9b59b6;
-    border-radius: 4px;
-    background-color: #1a1a1a;
-    color: #fff;
-    min-height: 100px;
-    resize: vertical;
+.appointment-card button:hover,
+.client-card button:hover,
+.service-card button:hover,
+.professional-card button:hover,
+.product-card button:hover {
+    background-color: #c0392b;
+}
+
+#clients-list h2,
+#services-list h2,
+#professionals-list h2,
+#products-list h2,
+#sales-list h2,
+#withdrawals-list h2,
+#appointments-list h2 {
+    margin: 20px 0;
+    color: #9b59b6;
 }
 
 .selected-item {
@@ -260,20 +302,27 @@ textarea {
     to { transform: translateX(0); opacity: 1; }
 }
 
+.selected-item button {
+    background-color: #e74c3c;
+    padding: 5px 10px;
+}
+
+.selected-item button:hover {
+    background-color: #c0392b;
+}
+
 .sale-items h4 {
     margin: 15px 0 10px;
     color: #9b59b6;
 }
 
-#selected-items {
-    margin: 20px 0;
-}
-
-.sale-total {
+.sale-total,
+.sale-tip {
     font-size: 1.2em;
     font-weight: bold;
     color: #9b59b6;
     text-align: right;
+    margin-top: 10px;
 }
 
 .financial-summary {
@@ -330,7 +379,7 @@ textarea {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    border-bottom: 1px solid 
+    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .ranking-item:last-child {
@@ -342,20 +391,19 @@ textarea {
     color: #9b59b6;
 }
 
-.sales-history {
-    background-color: #2d1b4c;
-    padding: 20px;
-    border-radius: 8px;
-}
-
-.payment-methods-report, .withdrawals-report {
+.sales-history,
+.payment-methods-report,
+.withdrawals-report,
+.tips-report {
     background-color: #2d1b4c;
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 30px;
 }
 
-.payment-methods-report h3, .withdrawals-report h3 {
+.payment-methods-report h3,
+.withdrawals-report h3,
+.tips-report h3 {
     color: #9b59b6;
     margin-bottom: 20px;
 }
@@ -367,13 +415,15 @@ textarea {
     margin-bottom: 30px;
 }
 
-.pdv-form, .pdv-items {
+.pdv-form,
+.pdv-items {
     background-color: #2d1b4c;
     padding: 20px;
     border-radius: 8px;
 }
 
-.pdv-form h3, .pdv-items h3 {
+.pdv-form h3,
+.pdv-items h3 {
     color: #9b59b6;
     margin-bottom: 15px;
 }
@@ -407,11 +457,24 @@ textarea {
     color: #fff;
 }
 
-#finalize-sale, #withdraw-btn, #close-cash-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
-    margin-top: 20px;
+.feedback {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    display: none;
+    z-index: 1000;
+}
+
+.feedback.success {
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+.feedback.error {
+    background-color: #e74c3c;
+    color: #fff;
 }
 
 @media (max-width: 768px) {
@@ -424,22 +487,24 @@ textarea {
         padding: 10px;
     }
 
+    .sidebar nav ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .sidebar nav ul li {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
     .main-content {
         padding: 10px;
     }
 
-    .charts-container {
-        grid-template-columns: 1fr;
-    }
-
-    .dashboard-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .summary-cards {
-        grid-template-columns: 1fr;
-    }
-
+    .charts-container,
+    .dashboard-cards,
+    .summary-cards,
     .pdv-container {
         grid-template-columns: 1fr;
     }
@@ -453,19 +518,17 @@ textarea {
         margin: 0 0 10px 0;
     }
 
-    .logo-img {
-        max-width: 120px; /* Ajuste para telas menores */
+    .chart-wrapper {
+        height: 250px;
     }
 
-    form {
-        padding: 15px;
-    }
-
-    input, select, textarea {
-        font-size: 16px;
-    }
-
-    .client-card, .service-card, .professional-card, .product-card, .sale-card, .withdrawal-card {
+    .appointment-card,
+    .client-card,
+    .service-card,
+    .professional-card,
+    .product-card,
+    .sale-card,
+    .withdrawal-card {
         flex-direction: column;
         text-align: center;
         gap: 10px;
@@ -477,18 +540,8 @@ textarea {
         text-align: center;
     }
 
-    button, .export-btn, #close-cash-btn {
-        width: 100%;
-        padding: 12px;
-        font-size: 16px;
-    }
-
-    .selected-item {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .export-filter {
+    .export-filter,
+    .backup-controls {
         flex-direction: column;
         align-items: flex-start;
     }
@@ -499,16 +552,15 @@ textarea {
         padding: 10px;
     }
 
-    .logo-img {
-        max-width: 100px; /* Ajuste para telas muito pequenas */
-    }
-
     h1, h2 {
         font-size: 1.5em;
     }
 
-    .chart-wrapper {
-        height: 250px;
-        padding: 10px;
+    .card p {
+        font-size: 1.2em;
+    }
+
+    button {
+        font-size: 14px;
     }
 }

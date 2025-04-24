@@ -1,29 +1,27 @@
 const BarbeariaDados = {
     vendas: [],
     produtos: [
-        { id: 'prod1', nome: "Shampoo", preco: 25, estoque: 10, descricao: "Shampoo para cabelos" },
-        { id: 'prod2', nome: "Condicionador", preco: 30, estoque: 8, descricao: "Condicionador para cabelos" }
+        { id: 'prod1', nome: "Shampoo", preco: 25.00, estoque: 10, descricao: "Shampoo para cabelos" },
+        { id: 'prod2', nome: "Condicionador", preco: 30.00, estoque: 8, descricao: "Condicionador para cabelos" }
     ],
     profissionais: [
-        { id: 'prof1', nome: "João Silva", telefone: "(11) 99999-9999", email: "joao@email.com", especialidade: "Corte Masculino" },
-        { id: 'prof2', nome: "Pedro Santos", telefone: "(11) 88888-8888", email: "pedro@email.com", especialidade: "Barba" }
+        { id: 'prof1', nome: "João Silva", telefone: "+1 (508) 939-1881", email: "joao@email.com", especialidade: "Corte Masculino" },
+        { id: 'prof2', nome: "Pedro Santos", telefone: "+1 (508) 939-1882", email: "pedro@email.com", especialidade: "Barba" }
     ],
     servicos: [
-        { id: 'serv1', nome: "Corte Masculino", preco: 30, descricao: "Corte tradicional masculino" },
-        { id: 'serv2', nome: "Barba", preco: 20, descricao: "Acabamento de barba" },
-        { id: 'serv3', nome: "Corte + Barba", preco: 45, descricao: "Combo corte e barba" }
+        { id: 'serv1', nome: "Corte Masculino", preco: 30.00, descricao: "Corte tradicional masculino" },
+        { id: 'serv2', nome: "Barba", preco: 20.00, descricao: "Acabamento de barba" },
+        { id: 'serv3', nome: "Corte + Barba", preco: 45.00, descricao: "Combo corte e barba" }
     ],
     barbeiros: [
-        { id: 'prof1', nome: "João", cortes: 0 },
-        { id: 'prof2', nome: "Pedro", cortes: 0 },
-        { id: 'prof3', nome: "Miguel", cortes: 0 }
+        { id: 'prof1', nome: "João Silva", cortes: 0 },
+        { id: 'prof2', nome: "Pedro Santos", cortes: 0 }
     ],
     agendamentos: [],
     clientes: [],
     caixa: null,
     retiradas: [],
 
-    // Gera um ID único simples
     gerarId(prefixo = '') {
         return prefixo + Math.random().toString(36).substr(2, 9);
     },
@@ -67,6 +65,85 @@ const BarbeariaDados = {
         }
     },
 
+    importarDados(dados) {
+        const camposEsperados = ['vendas', 'produtos', 'profissionais', 'servicos', 'barbeiros', 'agendamentos', 'clientes', 'caixa', 'retiradas'];
+        const isValid = camposEsperados.every(campo => campo in dados);
+        if (!isValid) {
+            throw new Error('Arquivo de backup inválido: estrutura de dados incompleta.');
+        }
+
+        if (!Array.isArray(dados.vendas) || !Array.isArray(dados.produtos) || !Array.isArray(dados.profissionais) ||
+            !Array.isArray(dados.servicos) || !Array.isArray(dados.barbeiros) || !Array.isArray(dados.agendamentos) ||
+            !Array.isArray(dados.clientes) || !Array.isArray(dados.retiradas)) {
+            throw new Error('Arquivo de backup inválido: campos devem ser arrays.');
+        }
+
+        this.vendas = dados.vendas.map(v => ({
+            id: v.id || this.gerarId('venda_'),
+            tipo: v.tipo,
+            itemId: v.itemId,
+            profissionalId: v.profissionalId,
+            quantidade: parseInt(v.quantidade) || 1,
+            valor: parseFloat(v.valor) || 0,
+            metodoPagamento: v.metodoPagamento,
+            gorjeta: parseFloat(v.gorjeta) || 0,
+            data: v.data || new Date().toISOString()
+        }));
+        this.produtos = dados.produtos.map(p => ({
+            id: p.id || this.gerarId('prod_'),
+            nome: p.nome || '',
+            preco: parseFloat(p.preco) || 0,
+            estoque: parseInt(p.estoque) || 0,
+            descricao: p.descricao || ''
+        }));
+        this.profissionais = dados.profissionais.map(p => ({
+            id: p.id || this.gerarId('prof_'),
+            nome: p.nome || '',
+            telefone: p.telefone || '',
+            email: p.email || '',
+            especialidade: p.especialidade || ''
+        }));
+        this.servicos = dados.servicos.map(s => ({
+            id: s.id || this.gerarId('serv_'),
+            nome: s.nome || '',
+            preco: parseFloat(s.preco) || 0,
+            descricao: s.descricao || ''
+        }));
+        this.barbeiros = dados.barbeiros.map(b => ({
+            id: b.id || this.gerarId('prof_'),
+            nome: b.nome || '',
+            cortes: parseInt(b.cortes) || 0
+        }));
+        this.agendamentos = dados.agendamentos.map(a => ({
+            id: a.id || this.gerarId('agend_'),
+            clientName: a.clientName || '',
+            date: a.date || '',
+            time: a.time || '',
+            service: a.service || '',
+            barberId: a.barberId || ''
+        }));
+        this.clientes = dados.clientes.map(c => ({
+            id: c.id || this.gerarId('cli_'),
+            nome: c.nome || '',
+            telefone: c.telefone || '',
+            email: c.email || ''
+        }));
+        this.caixa = dados.caixa ? {
+            data: dados.caixa.data || new Date().toISOString().split('T')[0],
+            valorInicial: parseFloat(dados.caixa.valorInicial) || 0,
+            aberto: !!dados.caixa.aberto,
+            saldoFinal: parseFloat(dados.caixa.saldoFinal) || 0
+        } : null;
+        this.retiradas = dados.retiradas.map(r => ({
+            id: r.id || this.gerarId('retirada_'),
+            valor: parseFloat(r.valor) || 0,
+            motivo: r.motivo || '',
+            data: r.data || new Date().toISOString()
+        }));
+
+        this.salvarDados();
+    },
+
     abrirCaixa(valorInicial) {
         if (isNaN(valorInicial) || valorInicial < 0) {
             throw new Error('Valor inicial deve ser um número não negativo.');
@@ -102,8 +179,8 @@ const BarbeariaDados = {
 
         const hoje = new Date().toISOString().split('T')[0];
         const vendasHoje = this.vendas
-            .filter(v => v.data.split('T')[0] === hoje)
-            .reduce((sum, v) => sum + v.valor, 0);
+            .filter(v => v.data.split('T')[0] === hoje && v.metodoPagamento === 'cash')
+            .reduce((sum, v) => sum + v.valor + (v.gorjeta || 0), 0);
         const retiradasHoje = this.retiradas
             .filter(r => r.data.split('T')[0] === hoje)
             .reduce((sum, r) => sum + r.valor, 0);
@@ -114,6 +191,12 @@ const BarbeariaDados = {
         if (!venda.valor || venda.valor <= 0 || !venda.tipo || !venda.itemId || !venda.profissionalId || !venda.quantidade || venda.quantidade <= 0) {
             throw new Error('Venda deve ter valor, tipo, item, profissional e quantidade válidos.');
         }
+        if (venda.gorjeta && (isNaN(venda.gorjeta) || venda.gorjeta < 0)) {
+            throw new Error('Gorjeta deve ser um valor não negativo.');
+        }
+        if (!['zelle', 'venmo', 'cash'].includes(venda.metodoPagamento)) {
+            throw new Error('Método de pagamento inválido.');
+        }
         if (venda.tipo === 'produto') {
             const produto = this.produtos.find(p => p.id === venda.itemId);
             if (!produto || produto.estoque < venda.quantidade) {
@@ -123,6 +206,7 @@ const BarbeariaDados = {
         }
         this.vendas.push({
             ...venda,
+            gorjeta: parseFloat(venda.gorjeta || 0),
             data: new Date().toISOString(),
             id: this.gerarId('venda_')
         });
@@ -164,7 +248,7 @@ const BarbeariaDados = {
         }
         const id = this.gerarId('agend_');
         this.agendamentos.push({ ...appointment, id });
-        const clienteExistente = this.clientes.find(c => c.nome === appointment.clientName);
+        const clienteExistente = this.clientes.find(c => c.nome.toLowerCase() === appointment.clientName.toLowerCase());
         if (!clienteExistente) {
             this.clientes.push({
                 id: this.gerarId('cli_'),
@@ -192,6 +276,9 @@ const BarbeariaDados = {
     adicionarCliente(cliente) {
         if (!cliente.nome) {
             throw new Error('Cliente deve ter um nome especificado.');
+        }
+        if (cliente.telefone && !/^\+1 \(\d{3}\) \d{3}-\d{4}$/.test(cliente.telefone)) {
+            throw new Error('Telefone deve estar no formato +1 (XXX) XXX-XXXX.');
         }
         this.clientes.push({
             id: this.gerarId('cli_'),
@@ -236,6 +323,9 @@ const BarbeariaDados = {
         if (!profissional.nome || !profissional.especialidade) {
             throw new Error('Profissional deve ter nome e especialidade especificados.');
         }
+        if (profissional.telefone && !/^\+1 \(\d{3}\) \d{3}-\d{4}$/.test(profissional.telefone)) {
+            throw new Error('Telefone deve estar no formato +1 (XXX) XXX-XXXX.');
+        }
         const id = this.gerarId('prof_');
         this.profissionais.push({ ...profissional, id });
         this.barbeiros.push({ id, nome: profissional.nome, cortes: 0 });
@@ -250,6 +340,10 @@ const BarbeariaDados = {
 
     obterProfissionais() {
         return this.profissionais;
+    },
+
+    obterBarbeiros() {
+        return this.barbeiros;
     },
 
     adicionarProduto(produto) {
@@ -280,14 +374,43 @@ const BarbeariaDados = {
     calcularReceitaMensal() {
         const hoje = new Date();
         const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-        const agendamentosMes = this.agendamentos.filter(a => {
-            const dataAgendamento = new Date(a.date);
-            return dataAgendamento >= primeiroDiaMes;
+        const vendasMes = this.vendas.filter(v => {
+            const dataVenda = new Date(v.data);
+            return dataVenda >= primeiroDiaMes;
         });
 
-        return agendamentosMes.reduce((total, agendamento) => {
-            const servico = this.servicos.find(s => s.nome.toLowerCase() === agendamento.service.toLowerCase());
-            return total + (servico ? servico.preco : 0);
-        }, 0);
+        return vendasMes.reduce((total, venda) => total + venda.valor, 0);
+    },
+
+    obterGorjetasDiarias() {
+        const hoje = new Date().toISOString().split('T')[0];
+        const gorjetasPorBarbeiro = {};
+        this.vendas
+            .filter(v => v.data.split('T')[0] === hoje && v.gorjeta > 0)
+            .forEach(venda => {
+                const profissionalId = venda.profissionalId;
+                gorjetasPorBarbeiro[profissionalId] = (gorjetasPorBarbeiro[profissionalId] || 0) + venda.gorjeta;
+            });
+        return this.profissionais.map(prof => ({
+            id: prof.id,
+            nome: prof.nome,
+            gorjeta: gorjetasPorBarbeiro[prof.id] || 0
+        }));
+    },
+
+    obterGorjetasMensais() {
+        const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        const gorjetasPorBarbeiro = {};
+        this.vendas
+            .filter(v => v.data.split('T')[0] >= primeiroDiaMes && v.gorjeta > 0)
+            .forEach(venda => {
+                const profissionalId = venda.profissionalId;
+                gorjetasPorBarbeiro[profissionalId] = (gorjetasPorBarbeiro[profissionalId] || 0) + venda.gorjeta;
+            });
+        return this.profissionais.map(prof => ({
+            id: prof.id,
+            nome: prof.nome,
+            gorjeta: gorjetasPorBarbeiro[prof.id] || 0
+        }));
     }
 };

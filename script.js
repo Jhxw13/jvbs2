@@ -2,306 +2,462 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar dados
     BarbeariaDados.inicializar();
 
+    // Cache de dados para melhorar performance
+    let cachedProfissionais = BarbeariaDados.obterProfissionais();
+    let cachedServicos = BarbeariaDados.obterServicos();
+    let cachedProdutos = BarbeariaDados.obterProdutos();
+
     // --- Navegação ---
-    const menuItems = document.querySelectorAll('.sidebar nav ul li');
-    menuItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const page = item.getAttribute('data-page');
-            document.querySelector('.page.active').classList.remove('active');
-            document.querySelector(`#page-${page}`).classList.add('active');
-            document.querySelector('.sidebar li.active').classList.remove('active');
-            item.classList.add('active');
+    function inicializarNavegacao() {
+        const menuItems = document.querySelectorAll('.sidebar nav ul li');
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.getAttribute('data-page');
+                document.querySelector('.page.active').classList.remove('active');
+                document.querySelector(`#page-${page}`).classList.add('active');
+                document.querySelector('.sidebar li.active').classList.remove('active');
+                item.classList.add('active');
+            });
         });
-    });
+    }
+
+    // --- Feedback Visual ---
+    function mostrarFeedback(mensagem, tipo) {
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = mensagem;
+        feedback.className = `feedback ${tipo}`;
+        feedback.style.display = 'block';
+        setTimeout(() => {
+            feedback.style.display = 'none';
+        }, 3000);
+    }
+
+    // --- Backup: Exportar e Importar ---
+    function inicializarBackup() {
+        const exportBackupBtn = document.getElementById('export-backup-btn');
+        const importBackupInput = document.getElementById('import-backup');
+
+        if (exportBackupBtn) {
+            exportBackupBtn.addEventListener('click', () => {
+                try {
+                    const dados = JSON.parse(localStorage.getItem('barbeariaDados') || '{}');
+                    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const hoje = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                    a.href = url;
+                    a.download = `jvbarbershop_backup_${hoje}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    mostrarFeedback('Backup exportado com sucesso!', 'success');
+                } catch (e) {
+                    console.error('Erro ao exportar backup:', e);
+                    mostrarFeedback('Erro ao exportar backup.', 'error');
+                }
+            });
+        }
+
+        if (importBackupInput) {
+            importBackupInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file || !file.name.endsWith('.json')) {
+                    mostrarFeedback('Por favor, selecione um arquivo JSON válido.', 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const dados = JSON.parse(event.target.result);
+                        BarbeariaDados.importarDados(dados);
+                        cachedProfissionais = BarbeariaDados.obterProfissionais();
+                        cachedServicos = BarbeariaDados.obterServicos();
+                        cachedProdutos = BarbeariaDados.obterProdutos();
+                        atualizarDashboard();
+                        atualizarListaVendas();
+                        atualizarListaProdutos();
+                        atualizarListaServicos();
+                        atualizarListaProfissionais();
+                        atualizarListaClientes();
+                        atualizarFinanceiro();
+                        atualizarStatusCaixa();
+                        atualizarAgendamentos();
+                        mostrarFeedback('Backup importado com sucesso!', 'success');
+                        importBackupInput.value = '';
+                    } catch (e) {
+                        console.error('Erro ao importar backup:', e);
+                        mostrarFeedback('Erro ao importar backup: arquivo inválido.', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+    }
 
     // --- Agendamentos ---
-    const barberSelect = document.getElementById('barber');
-    BarbeariaDados.barbeiros.forEach(barbeiro => {
-        const option = document.createElement('option');
-        option.value = barbeiro.id;
-        option.textContent = barbeiro.nome;
-        barberSelect.appendChild(option);
-    });
+    function inicializarAgendamentos() {
+        const barberSelect = document.getElementById('barber');
+        const serviceSelect = document.getElementById('service');
 
-    const form = document.getElementById('appointment-form');
-    if (form) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const appointment = {
-                clientName: document.getElementById('client-name').value,
-                date: document.getElementById('date').value,
-                time: document.getElementById('time').value,
-                service: document.getElementById('service').value,
-                barberId: document.getElementById('barber').value
-            };
-            BarbeariaDados.adicionarAgendamento(appointment);
-            atualizarDashboard();
-            
-            const mensagem = `Olá ${appointment.clientName}! Seu agendamento foi confirmado:\n\nData: ${appointment.date}\nHorário: ${appointment.time}\nServiço: ${appointment.service}\n\nAguardamos você!`;
-            const mensagemFormatada = encodeURIComponent(mensagem);
-            
-            const cliente = BarbeariaDados.obterClientes().find(c => c.nome === appointment.clientName);
-            if (cliente && cliente.telefone) {
-                const telefone = cliente.telefone.replace(/\D/g, '');
-                window.open(`https://wa.me/55${telefone}?text=${mensagemFormatada}`, '_blank');
-            }
-            
-            form.reset();
-        });
+        if (barberSelect) {
+            BarbeariaDados.obterBarbeiros().forEach(barbeiro => {
+                const option = document.createElement('option');
+                option.value = barbeiro.id;
+                option.textContent = barbeiro.nome;
+                barberSelect.appendChild(option);
+            });
+        }
+
+        if (serviceSelect) {
+            cachedServicos.forEach(servico => {
+                const option = document.createElement('option');
+                option.value = servico.id;
+                option.textContent = `${servico.nome} - US$ ${servico.preco.toFixed(2)}`;
+                serviceSelect.appendChild(option);
+            });
+        }
+
+        const form = document.getElementById('appointment-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const appointment = {
+                    clientName: document.getElementById('client-name').value.trim(),
+                    date: document.getElementById('date').value,
+                    time: document.getElementById('time').value,
+                    service: cachedServicos.find(s => s.id === document.getElementById('service').value)?.nome || '',
+                    barberId: document.getElementById('barber').value
+                };
+                try {
+                    if (!appointment.service) {
+                        throw new Error('Selecione um serviço válido.');
+                    }
+                    BarbeariaDados.adicionarAgendamento(appointment);
+                    atualizarAgendamentos();
+                    atualizarDashboard();
+
+                    const mensagem = `Olá ${appointment.clientName}! Seu agendamento foi confirmado:\n\nData: ${appointment.date}\nHorário: ${appointment.time}\nServiço: ${appointment.service}\n\nAguardamos você!`;
+                    const mensagemFormatada = encodeURIComponent(mensagem);
+
+                    const cliente = BarbeariaDados.obterClientes().find(c => c.nome.toLowerCase() === appointment.clientName.toLowerCase());
+                    if (cliente && cliente.telefone) {
+                        const telefone = cliente.telefone.replace(/\D/g, '');
+                        window.open(`https://wa.me/1${telefone}?text=${mensagemFormatada}`, '_blank');
+                    }
+
+                    form.reset();
+                    mostrarFeedback('Agendamento registrado com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
+    }
+
+    function atualizarAgendamentos() {
+        const appointmentsLists = document.querySelectorAll('#appointments-list');
+        if (appointmentsLists) {
+            const agendamentos = BarbeariaDados.obterAgendamentos();
+            appointmentsLists.forEach(list => {
+                list.innerHTML = `
+                    <h2>Agendamentos</h2>
+                    ${agendamentos.map((appointment, index) => `
+                        <div class="appointment-card">
+                            <div>
+                                <p><strong>Cliente:</strong> ${appointment.clientName}</p>
+                                <p><strong>Data:</strong> ${appointment.date}</p>
+                                <p><strong>Hora:</strong> ${appointment.time}</p>
+                                <p><strong>Serviço:</strong> ${appointment.service}</p>
+                            </div>
+                            <button onclick="deleteAppointment('${appointment.id}')">Cancelar</button>
+                        </div>
+                    `).join('')}
+                `;
+            });
+        }
     }
 
     // --- PDV: Controle do Caixa Diário ---
-    const cashForm = document.getElementById('cash-form');
-    const cashStatus = document.getElementById('cash-status');
-    const finalizeSaleBtn = document.getElementById('finalize-sale');
-    const withdrawBtn = document.getElementById('withdraw-btn');
-    const closeCashBtn = document.getElementById('close-cash-btn');
-    const cashBalanceDisplay = document.getElementById('cash-balance-display');
+    function inicializarCaixa() {
+        const cashForm = document.getElementById('cash-form');
+        const cashStatus = document.getElementById('cash-status');
+        const finalizeSaleBtn = document.getElementById('finalize-sale');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        const closeCashBtn = document.getElementById('close-cash-btn');
+        const cashBalanceDisplay = document.getElementById('cash-balance-display');
 
-    function atualizarStatusCaixa() {
-        const caixa = BarbeariaDados.obterCaixa();
-        const hoje = new Date().toISOString().split('T')[0];
-        if (caixa && caixa.aberto && caixa.data === hoje) {
-            cashStatus.textContent = `Caixa Aberto (R$ ${caixa.valorInicial.toFixed(2)})`;
-            cashStatus.classList.remove('cash-closed');
-            cashStatus.classList.add('cash-open');
-            cashForm.style.display = 'none';
-            closeCashBtn.style.display = 'block';
-            closeCashBtn.disabled = false;
-            finalizeSaleBtn.disabled = false;
-            withdrawBtn.disabled = false;
-        } else {
-            cashStatus.textContent = 'Caixa Fechado';
-            cashStatus.classList.remove('cash-open');
-            cashStatus.classList.add('cash-closed');
-            cashForm.style.display = 'block';
-            closeCashBtn.style.display = 'none';
-            finalizeSaleBtn.disabled = true;
-            withdrawBtn.disabled = true;
-        }
-        atualizarSaldoCaixa();
-    }
-
-    function atualizarSaldoCaixa() {
-        const saldo = BarbeariaDados.calcularSaldoCaixa();
-        cashBalanceDisplay.textContent = saldo.toFixed(2);
-    }
-
-    function fecharCaixa() {
-        const caixa = BarbeariaDados.obterCaixa();
-        if (!caixa || !caixa.aberto) {
-            alert('O caixa já está fechado ou não foi aberto hoje.');
-            return;
-        }
-        const saldoFinal = BarbeariaDados.calcularSaldoCaixa();
-        BarbeariaDados.fecharCaixa(saldoFinal);
-        atualizarStatusCaixa();
-        atualizarFinanceiro();
-        alert(`Caixa fechado com sucesso! Saldo final: R$ ${saldoFinal.toFixed(2)}`);
-    }
-
-    if (cashForm) {
-        cashForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const valorInicial = document.getElementById('cash-initial').value;
-            if (valorInicial >= 0) {
-                BarbeariaDados.abrirCaixa(valorInicial);
-                atualizarStatusCaixa();
-                cashForm.reset();
+        function atualizarStatusCaixa() {
+            const caixa = BarbeariaDados.obterCaixa();
+            const hoje = new Date().toISOString().split('T')[0];
+            if (caixa && caixa.aberto && caixa.data === hoje) {
+                cashStatus.textContent = `Caixa Aberto (US$ ${caixa.valorInicial.toFixed(2)})`;
+                cashStatus.classList.remove('cash-closed');
+                cashStatus.classList.add('cash-open');
+                cashForm.style.display = 'none';
+                closeCashBtn.style.display = 'block';
+                closeCashBtn.disabled = false;
+                finalizeSaleBtn.disabled = false;
+                withdrawBtn.disabled = false;
             } else {
-                alert('Insira um valor inicial válido.');
+                cashStatus.textContent = 'Caixa Fechado';
+                cashStatus.classList.remove('cash-open');
+                cashStatus.classList.add('cash-closed');
+                cashForm.style.display = 'block';
+                closeCashBtn.style.display = 'none';
+                finalizeSaleBtn.disabled = true;
+                withdrawBtn.disabled = true;
             }
-        });
-    }
+            atualizarSaldoCaixa();
+        }
 
-    if (closeCashBtn) {
-        closeCashBtn.addEventListener('click', fecharCaixa);
+        function atualizarSaldoCaixa() {
+            const saldo = BarbeariaDados.calcularSaldoCaixa();
+            cashBalanceDisplay.textContent = `US$ ${saldo.toFixed(2)}`;
+        }
+
+        function fecharCaixa() {
+            try {
+                const caixa = BarbeariaDados.obterCaixa();
+                if (!caixa || !caixa.aberto) {
+                    throw new Error('O caixa já está fechado ou não foi aberto hoje.');
+                }
+                const saldoFinal = BarbeariaDados.calcularSaldoCaixa();
+                BarbeariaDados.fecharCaixa(saldoFinal);
+                atualizarStatusCaixa();
+                atualizarFinanceiro();
+                mostrarFeedback(`Caixa fechado com sucesso! Saldo final: US$ ${saldoFinal.toFixed(2)}`, 'success');
+            } catch (e) {
+                mostrarFeedback(e.message, 'error');
+            }
+        }
+
+        if (cashForm) {
+            cashForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const valorInicial = parseFloat(document.getElementById('cash-initial').value);
+                try {
+                    if (isNaN(valorInicial) || valorInicial < 0) {
+                        throw new Error('Insira um valor inicial válido.');
+                    }
+                    BarbeariaDados.abrirCaixa(valorInicial);
+                    atualizarStatusCaixa();
+                    cashForm.reset();
+                    mostrarFeedback('Caixa aberto com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
+
+        if (closeCashBtn) {
+            closeCashBtn.addEventListener('click', fecharCaixa);
+        }
     }
 
     // --- PDV: Controle de Retiradas ---
-    const withdrawalForm = document.getElementById('withdrawal-form');
-    if (withdrawalForm) {
-        withdrawalForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const valor = parseFloat(document.getElementById('withdrawal-amount').value);
-            const motivo = document.getElementById('withdrawal-reason').value;
-            const saldo = BarbeariaDados.calcularSaldoCaixa();
+    function inicializarRetiradas() {
+        const withdrawalForm = document.getElementById('withdrawal-form');
+        if (withdrawalForm) {
+            withdrawalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const valor = parseFloat(document.getElementById('withdrawal-amount').value);
+                const motivo = document.getElementById('withdrawal-reason').value.trim();
+                const saldo = BarbeariaDados.calcularSaldoCaixa();
 
-            if (!BarbeariaDados.obterCaixa()?.aberto) {
-                alert('O caixa deve estar aberto para registrar uma retirada.');
-                return;
-            }
-            if (valor <= 0) {
-                alert('Insira um valor de retirada válido.');
-                return;
-            }
-            if (valor > saldo) {
-                alert(`Saldo insuficiente! Saldo disponível: R$ ${saldo.toFixed(2)}.`);
-                return;
-            }
-            if (!motivo.trim()) {
-                alert('Por favor, informe o motivo da retirada.');
-                return;
-            }
+                try {
+                    if (!BarbeariaDados.obterCaixa()?.aberto) {
+                        throw new Error('O caixa deve estar aberto para registrar uma retirada.');
+                    }
+                    if (isNaN(valor) || valor <= 0) {
+                        throw new Error('Insira um valor de retirada válido.');
+                    }
+                    if (valor > saldo) {
+                        throw new Error(`Saldo insuficiente! Saldo disponível: US$ ${saldo.toFixed(2)}.`);
+                    }
+                    if (!motivo) {
+                        throw new Error('Por favor, informe o motivo da retirada.');
+                    }
 
-            BarbeariaDados.adicionarRetirada({ valor, motivo });
-            atualizarSaldoCaixa();
-            atualizarFinanceiro();
-            withdrawalForm.reset();
-            alert('Retirada registrada com sucesso!');
-        });
+                    BarbeariaDados.adicionarRetirada({ valor, motivo });
+                    atualizarSaldoCaixa();
+                    atualizarFinanceiro();
+                    withdrawalForm.reset();
+                    mostrarFeedback('Retirada registrada com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
     }
 
     // --- PDV: Controle de Vendas ---
     let selectedItems = [];
     let totalVenda = 0;
+    let gorjeta = 0;
 
-    const saleServiceSelect = document.getElementById('sale-service');
-    const saleProductSelect = document.getElementById('sale-product');
-    const saleProfessionalSelect = document.getElementById('sale-professional');
-    const selectedItemsDiv = document.getElementById('selected-items');
-    const saleTotalSpan = document.getElementById('sale-total');
+    function inicializarVendas() {
+        const saleServiceSelect = document.getElementById('sale-service');
+        const saleProductSelect = document.getElementById('sale-product');
+        const saleProfessionalSelect = document.getElementById('sale-professional');
+        const selectedItemsDiv = document.getElementById('selected-items');
+        const saleTotalSpan = document.getElementById('sale-total');
+        const saleTipInput = document.getElementById('sale-tip');
+        const saleTipDisplay = document.getElementById('sale-tip-display');
 
-    function atualizarTotal() {
-        totalVenda = selectedItems.reduce((total, item) => total + item.valor, 0);
-        saleTotalSpan.textContent = totalVenda.toFixed(2);
-    }
-
-    function atualizarItensSelecionados() {
-        selectedItemsDiv.innerHTML = selectedItems.map((item, index) => `
-            <div class="selected-item">
-                <p>${item.tipo === 'servico' ? 'Serviço' : 'Produto'}: ${item.nome} - 
-                   Qtd: ${item.quantidade} - R$ ${item.valor.toFixed(2)}</p>
-                <button type="button" onclick="removerItem(${index})">Remover</button>
-            </div>
-        `).join('');
-        atualizarTotal();
-    }
-
-    window.removerItem = (index) => {
-        selectedItems.splice(index, 1);
-        atualizarItensSelecionados();
-    };
-
-    if (saleServiceSelect) {
-        BarbeariaDados.obterServicos().forEach(servico => {
-            const option = document.createElement('option');
-            option.value = servico.id;
-            option.textContent = `${servico.nome} - R$ ${servico.preco.toFixed(2)}`;
-            saleServiceSelect.appendChild(option);
-        });
-    }
-
-    if (saleProductSelect) {
-        BarbeariaDados.obterProdutos().forEach(produto => {
-            const option = document.createElement('option');
-            option.value = produto.id;
-            option.textContent = `${produto.nome} - R$ ${produto.preco.toFixed(2)}`;
-            saleProductSelect.appendChild(option);
-        });
-    }
-
-    if (saleProfessionalSelect) {
-        BarbeariaDados.obterProfissionais().forEach(profissional => {
-            const option = document.createElement('option');
-            option.value = profissional.id;
-            option.textContent = profissional.nome;
-            saleProfessionalSelect.appendChild(option);
-        });
-    }
-
-    document.getElementById('add-service').addEventListener('click', () => {
-        const servicoId = saleServiceSelect.value;
-        if (servicoId) {
-            const servico = BarbeariaDados.obterServicos().find(s => s.id === servicoId);
-            selectedItems.push({
-                tipo: 'servico',
-                id: servicoId,
-                nome: servico.nome,
-                quantidade: 1,
-                valor: servico.preco
-            });
-            atualizarItensSelecionados();
-            saleServiceSelect.value = '';
+        function atualizarTotal() {
+            totalVenda = selectedItems.reduce((total, item) => total + item.valor, 0);
+            saleTotalSpan.textContent = `US$ ${totalVenda.toFixed(2)}`;
+            gorjeta = parseFloat(saleTipInput.value) || 0;
+            saleTipDisplay.textContent = `US$ ${gorjeta.toFixed(2)}`;
         }
-    });
 
-    document.getElementById('add-product').addEventListener('click', () => {
-        const produtoId = saleProductSelect.value;
-        const quantidade = parseInt(document.getElementById('sale-quantity').value);
-        if (produtoId && quantidade > 0) {
-            const produto = BarbeariaDados.obterProdutos().find(p => p.id === produtoId);
-            if (produto.estoque < quantidade) {
-                alert(`Estoque insuficiente! Disponível: ${produto.estoque} unidades de ${produto.nome}.`);
-                return;
-            }
-            selectedItems.push({
-                tipo: 'produto',
-                id: produtoId,
-                nome: produto.nome,
-                quantidade: quantidade,
-                valor: produto.preco * quantidade
-            });
-            atualizarItensSelecionados();
-            saleProductSelect.value = '';
-            document.getElementById('sale-quantity').value = 1;
+        function atualizarItensSelecionados() {
+            selectedItemsDiv.innerHTML = selectedItems.map((item, index) => `
+                <div class="selected-item">
+                    <p>${item.tipo === 'servico' ? 'Serviço' : 'Produto'}: ${item.nome} - 
+                       Qtd: ${item.quantidade} - US$ ${item.valor.toFixed(2)}</p>
+                    <button type="button" onclick="removerItem(${index})">Remover</button>
+                </div>
+            `).join('');
+            atualizarTotal();
         }
-    });
 
-    const salesForm = document.getElementById('sales-form');
-    if (salesForm) {
-        salesForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const profissionalId = document.getElementById('sale-professional').value;
-            const metodoPagamento = document.getElementById('payment-method').value;
-            
-            if (!profissionalId || selectedItems.length === 0 || !metodoPagamento) {
-                alert('Selecione um profissional, método de pagamento e pelo menos um item para a venda.');
-                return;
+        window.removerItem = (index) => {
+            selectedItems.splice(index, 1);
+            atualizarItensSelecionados();
+        };
+
+        if (saleServiceSelect) {
+            cachedServicos.forEach(servico => {
+                const option = document.createElement('option');
+                option.value = servico.id;
+                option.textContent = `${servico.nome} - US$ ${servico.preco.toFixed(2)}`;
+                saleServiceSelect.appendChild(option);
+            });
+        }
+
+        if (saleProductSelect) {
+            cachedProdutos.forEach(produto => {
+                const option = document.createElement('option');
+                option.value = produto.id;
+                option.textContent = `${produto.nome} - US$ ${produto.preco.toFixed(2)}`;
+                saleProductSelect.appendChild(option);
+            });
+        }
+
+        if (saleProfessionalSelect) {
+            cachedProfissionais.forEach(profissional => {
+                const option = document.createElement('option');
+                option.value = profissional.id;
+                option.textContent = profissional.nome;
+                saleProfessionalSelect.appendChild(option);
+            });
+        }
+
+        document.getElementById('add-service').addEventListener('click', () => {
+            const servicoId = saleServiceSelect.value;
+            if (servicoId) {
+                const servico = cachedServicos.find(s => s.id === servicoId);
+                selectedItems.push({
+                    tipo: 'servico',
+                    id: servicoId,
+                    nome: servico.nome,
+                    quantidade: 1,
+                    valor: servico.preco
+                });
+                atualizarItensSelecionados();
+                saleServiceSelect.value = '';
             }
+        });
 
-            let estoqueValido = true;
-            selectedItems.forEach(item => {
-                if (item.tipo === 'produto') {
-                    const produto = BarbeariaDados.obterProdutos().find(p => p.id === item.id);
-                    if (produto.estoque < item.quantidade) {
-                        alert(`Estoque insuficiente para ${produto.nome}! Disponível: ${produto.estoque} unidades.`);
-                        estoqueValido = false;
+        document.getElementById('add-product').addEventListener('click', () => {
+            const produtoId = saleProductSelect.value;
+            const quantidade = parseInt(document.getElementById('sale-quantity').value);
+            if (produtoId && quantidade > 0) {
+                const produto = cachedProdutos.find(p => p.id === produtoId);
+                if (produto.estoque < quantidade) {
+                    mostrarFeedback(`Estoque insuficiente! Disponível: ${produto.estoque} unidades de ${produto.nome}.`, 'error');
+                    return;
+                }
+                selectedItems.push({
+                    tipo: 'produto',
+                    id: produtoId,
+                    nome: produto.nome,
+                    quantidade: quantidade,
+                    valor: produto.preco * quantidade
+                });
+                atualizarItensSelecionados();
+                saleProductSelect.value = '';
+                document.getElementById('sale-quantity').value = 1;
+            }
+        });
+
+        saleTipInput.addEventListener('input', atualizarTotal);
+
+        const salesForm = document.getElementById('sales-form');
+        if (salesForm) {
+            salesForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const profissionalId = document.getElementById('sale-professional').value;
+                const metodoPagamento = document.getElementById('payment-method').value;
+                const gorjetaVenda = parseFloat(saleTipInput.value) || 0;
+
+                try {
+                    if (!profissionalId || selectedItems.length === 0 || !metodoPagamento) {
+                        throw new Error('Selecione um profissional, método de pagamento e pelo menos um item para a venda.');
                     }
+                    if (gorjetaVenda < 0) {
+                        throw new Error('A gorjeta não pode ser negativa.');
+                    }
+                    if (!BarbeariaDados.obterCaixa()?.aberto) {
+                        throw new Error('O caixa deve estar aberto para registrar uma venda.');
+                    }
+
+                    let estoqueValido = true;
+                    selectedItems.forEach(item => {
+                        if (item.tipo === 'produto') {
+                            const produto = cachedProdutos.find(p => p.id === item.id);
+                            if (produto.estoque < item.quantidade) {
+                                mostrarFeedback(`Estoque insuficiente para ${produto.nome}! Disponível: ${produto.estoque} unidades.`, 'error');
+                                estoqueValido = false;
+                            }
+                        }
+                    });
+
+                    if (!estoqueValido) return;
+
+                    selectedItems.forEach(item => {
+                        const venda = {
+                            tipo: item.tipo,
+                            itemId: item.id,
+                            profissionalId: profissionalId,
+                            quantidade: item.quantidade,
+                            valor: item.valor,
+                            metodoPagamento: metodoPagamento,
+                            gorjeta: item.tipo === 'servico' ? gorjetaVenda : 0
+                        };
+
+                        if (item.tipo === 'servico') {
+                            BarbeariaDados.registrarCorte(profissionalId);
+                        }
+                        BarbeariaDados.adicionarVenda(venda);
+                    });
+
+                    selectedItems = [];
+                    atualizarItensSelecionados();
+                    atualizarListaVendas();
+                    salesForm.reset();
+                    saleTipInput.value = '0';
+                    atualizarDashboard();
+                    atualizarListaProdutos();
+                    atualizarFinanceiro();
+                    atualizarSaldoCaixa();
+                    mostrarFeedback('Venda finalizada com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
                 }
             });
-
-            if (!estoqueValido) return;
-
-            selectedItems.forEach(item => {
-                const venda = {
-                    tipo: item.tipo,
-                    itemId: item.id,
-                    profissionalId: profissionalId,
-                    quantidade: item.quantidade,
-                    valor: item.valor,
-                    metodoPagamento: metodoPagamento
-                };
-                
-                if (item.tipo === 'servico') {
-                    BarbeariaDados.registrarCorte(profissionalId);
-                } else if (item.tipo === 'produto') {
-                    const produto = BarbeariaDados.obterProdutos().find(p => p.id === item.id);
-                    produto.estoque -= item.quantidade;
-                }
-                
-                BarbeariaDados.adicionarVenda(venda);
-            });
-
-            selectedItems = [];
-            atualizarItensSelecionados();
-            atualizarListaVendas();
-            salesForm.reset();
-            atualizarDashboard();
-            atualizarListaProdutos();
-            atualizarFinanceiro();
-            atualizarSaldoCaixa();
-        });
+        }
     }
 
     function atualizarListaVendas() {
@@ -311,19 +467,20 @@ document.addEventListener('DOMContentLoaded', () => {
             salesList.innerHTML = `
                 <h2>Vendas Realizadas</h2>
                 ${vendas.map(venda => {
-                    const profissional = BarbeariaDados.obterProfissionais().find(p => p.id === venda.profissionalId);
-                    const item = venda.tipo === 'servico' 
-                        ? BarbeariaDados.obterServicos().find(s => s.id === venda.itemId)
-                        : BarbeariaDados.obterProdutos().find(p => p.id === venda.itemId);
-                    
+                    const profissional = cachedProfissionais.find(p => p.id === venda.profissionalId);
+                    const item = venda.tipo === 'servico'
+                        ? cachedServicos.find(s => s.id === venda.itemId)
+                        : cachedProdutos.find(p => p.id === venda.itemId);
+
                     return `
                         <div class="sale-card">
                             <div>
                                 <p><strong>Tipo:</strong> ${venda.tipo === 'servico' ? 'Serviço' : 'Produto'}</p>
-                                <p><strong>Item:</strong> ${item.nome}</p>
-                                <p><strong>Profissional:</strong> ${profissional.nome}</p>
+                                <p><strong>Item:</strong> ${item?.nome || 'Item desconhecido'}</p>
+                                <p><strong>Profissional:</strong> ${profissional?.nome || 'Desconhecido'}</p>
                                 <p><strong>Quantidade:</strong> ${venda.quantidade}</p>
-                                <p><strong>Valor:</strong> R$ ${venda.valor.toFixed(2)}</p>
+                                <p><strong>Valor:</strong> US$ ${venda.valor.toFixed(2)}</p>
+                                <p><strong>Gorjeta:</strong> US$ ${(venda.gorjeta || 0).toFixed(2)}</p>
                                 <p><strong>Método:</strong> ${formatarMetodoPagamento(venda.metodoPagamento)}</p>
                                 <p><strong>Data:</strong> ${new Date(venda.data).toLocaleString()}</p>
                             </div>
@@ -336,10 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatarMetodoPagamento(metodo) {
         const metodos = {
-            'dinheiro': 'Dinheiro',
-            'cartao_credito': 'Cartão de Crédito',
-            'cartao_debito': 'Cartão de Débito',
-            'pix': 'Pix'
+            'zelle': 'Zelle',
+            'venmo': 'Venmo',
+            'cash': 'Cash'
         };
         return metodos[metodo] || metodo;
     }
@@ -347,13 +503,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Dashboard ---
     function atualizarDashboard() {
         const vendas = BarbeariaDados.obterVendas();
-        const profissionais = BarbeariaDados.obterProfissionais();
-        
-        const estatisticasPorBarbeiro = profissionais.map(profissional => {
+
+        const estatisticasPorBarbeiro = cachedProfissionais.map(profissional => {
             const vendasBarbeiro = vendas.filter(v => v.profissionalId === profissional.id);
             const totalCortes = vendasBarbeiro.filter(v => v.tipo === 'servico').length;
             const totalReceita = vendasBarbeiro.reduce((total, venda) => total + venda.valor, 0);
-            
+
             return {
                 nome: profissional.nome,
                 totalCortes,
@@ -363,10 +518,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const totalCortes = estatisticasPorBarbeiro.reduce((total, barb) => total + barb.totalCortes, 0);
         const totalReceita = estatisticasPorBarbeiro.reduce((total, barb) => total + barb.totalReceita, 0);
-        
+
         document.getElementById('total-haircuts').textContent = totalCortes;
         document.getElementById('total-clients').textContent = BarbeariaDados.obterClientes().length;
-        document.getElementById('total-revenue').textContent = `R$ ${totalReceita.toFixed(2)}`;
+        document.getElementById('total-revenue').textContent = `US$ ${totalReceita.toFixed(2)}`;
 
         const oldPerformanceChart = Chart.getChart('barbers-performance-chart');
         if (oldPerformanceChart) {
@@ -422,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: estatisticasPorBarbeiro.map(b => b.nome),
                 datasets: [{
                     data: estatisticasPorBarbeiro.map(b => b.totalReceita),
-                    backgroundColor: ['#9b59b6', '#3498db', '#e74c3c', '#2ecc71']
+                    backgroundColor: ['#9b59b6', '#8e44ad', '#3498db', '#2ecc71']
                 }]
             },
             options: {
@@ -442,58 +597,59 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const appointmentsList = document.getElementById('appointments-list');
-        if (appointmentsList) {
-            const agendamentos = BarbeariaDados.obterAgendamentos();
-            appointmentsList.innerHTML = `
-                <h2>Agendamentos</h2>
-                ${agendamentos.map((appointment, index) => `
-                    <div class="appointment-card">
-                        <div>
-                            <p><strong>Cliente:</strong> ${appointment.clientName}</p>
-                            <p><strong>Data:</strong> ${appointment.date}</p>
-                            <p><strong>Hora:</strong> ${appointment.time}</p>
-                            <p><strong>Serviço:</strong> ${appointment.service}</p>
-                        </div>
-                        <button onclick="deleteAppointment('${appointment.id}')">Cancelar</button>
-                    </div>
-                `).join('')}
-            `;
-        }
+        atualizarAgendamentos();
     }
 
     window.registrarCorte = (barbeiroId) => {
-        BarbeariaDados.registrarCorte(barbeiroId);
-        atualizarDashboard();
+        try {
+            BarbeariaDados.registrarCorte(barbeiroId);
+            atualizarDashboard();
+        } catch (e) {
+            mostrarFeedback(e.message, 'error');
+        }
     };
 
     window.deleteAppointment = (id) => {
-        BarbeariaDados.removerAgendamento(id);
-        atualizarDashboard();
+        try {
+            BarbeariaDados.removerAgendamento(id);
+            atualizarAgendamentos();
+            atualizarDashboard();
+            mostrarFeedback('Agendamento cancelado com sucesso!', 'success');
+        } catch (e) {
+            mostrarFeedback(e.message, 'error');
+        }
     };
 
     // --- Clientes ---
-    const clientForm = document.getElementById('client-form');
-    if (clientForm) {
-        clientForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const telefone = document.getElementById('new-client-phone').value;
-            const telefoneRegex = /^\+1 \(\d{3}\) \d{3}-\d{4}$/;
-            
-            if (!telefoneRegex.test(telefone)) {
-                alert('Por favor, insira o telefone no formato: +1 (508) 939-1881');
-                return;
-            }
+    function inicializarClientes() {
+        const clientForm = document.getElementById('client-form');
+        if (clientForm) {
+            clientForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const telefone = document.getElementById('new-client-phone').value.trim();
+                const telefoneRegex = /^\+1 \(\d{3}\) \d{3}-\d{4}$/;
 
-            const cliente = {
-                nome: document.getElementById('new-client-name').value,
-                telefone: telefone,
-                email: document.getElementById('new-client-email').value
-            };
-            BarbeariaDados.adicionarCliente(cliente);
-            atualizarListaClientes();
-            clientForm.reset();
-        });
+                try {
+                    if (telefone && !telefoneRegex.test(telefone)) {
+                        throw new Error('Por favor, insira o telefone no formato: +1 (508) 939-1881');
+                    }
+                    const cliente = {
+                        nome: document.getElementById('new-client-name').value.trim(),
+                        telefone: telefone,
+                        email: document.getElementById('new-client-email').value.trim()
+                    };
+                    if (!cliente.nome) {
+                        throw new Error('O nome do cliente é obrigatório.');
+                    }
+                    BarbeariaDados.adicionarCliente(cliente);
+                    atualizarListaClientes();
+                    clientForm.reset();
+                    mostrarFeedback('Cliente adicionado com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
     }
 
     function atualizarListaClientes() {
@@ -506,8 +662,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="client-card">
                         <div>
                             <p><strong>Nome:</strong> ${cliente.nome}</p>
-                            <p><strong>Telefone:</strong> ${cliente.telefone}</p>
-                            <p><strong>Email:</strong> ${cliente.email}</p>
+                            <p><strong>Telefone:</strong> ${cliente.telefone || 'N/A'}</p>
+                            <p><strong>Email:</strong> ${cliente.email || 'N/A'}</p>
                         </div>
                         <button onclick="removerCliente('${cliente.id}')">Remover</button>
                     </div>
@@ -517,38 +673,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.removerCliente = (id) => {
-        BarbeariaDados.removerCliente(id);
-        atualizarListaClientes();
+        try {
+            BarbeariaDados.removerCliente(id);
+            atualizarListaClientes();
+            atualizarDashboard();
+            mostrarFeedback('Cliente removido com sucesso!', 'success');
+        } catch (e) {
+            mostrarFeedback(e.message, 'error');
+        }
     };
 
     // --- Serviços ---
-    const serviceForm = document.getElementById('service-form');
-    if (serviceForm) {
-        serviceForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const servico = {
-                nome: document.getElementById('service-name').value,
-                preco: parseFloat(document.getElementById('service-price').value),
-                descricao: document.getElementById('service-description').value
-            };
-            BarbeariaDados.adicionarServico(servico);
-            atualizarListaServicos();
-            serviceForm.reset();
-        });
+    function inicializarServicos() {
+        const serviceForm = document.getElementById('service-form');
+        if (serviceForm) {
+            serviceForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const preco = parseFloat(document.getElementById('service-price').value);
+                try {
+                    if (isNaN(preco) || preco <= 0) {
+                        throw new Error('O preço do serviço deve ser um valor positivo.');
+                    }
+                    const servico = {
+                        nome: document.getElementById('service-name').value.trim(),
+                        preco: preco,
+                        descricao: document.getElementById('service-description').value.trim()
+                    };
+                    if (!servico.nome) {
+                        throw new Error('O nome do serviço é obrigatório.');
+                    }
+                    BarbeariaDados.adicionarServico(servico);
+                    cachedServicos = BarbeariaDados.obterServicos();
+                    atualizarListaServicos();
+                    serviceForm.reset();
+                    mostrarFeedback('Serviço adicionado com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
     }
 
     function atualizarListaServicos() {
         const servicesList = document.getElementById('services-list');
         if (servicesList) {
-            const servicos = BarbeariaDados.obterServicos();
             servicesList.innerHTML = `
                 <h2>Serviços Cadastrados</h2>
-                ${servicos.map(servico => `
+                ${cachedServicos.map(servico => `
                     <div class="service-card">
                         <div>
                             <p><strong>Nome:</strong> ${servico.nome}</p>
-                            <p><strong>Preço:</strong> R$ ${servico.preco.toFixed(2)}</p>
-                            <p><strong>Descrição:</strong> ${servico.descricao}</p>
+                            <p><strong>Preço:</strong> US$ ${servico.preco.toFixed(2)}</p>
+                            <p><strong>Descrição:</strong> ${servico.descricao || 'N/A'}</p>
                         </div>
                         <button onclick="removerServico('${servico.id}')">Remover</button>
                     </div>
@@ -558,39 +734,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.removerServico = (id) => {
-        BarbeariaDados.removerServico(id);
-        atualizarListaServicos();
+        try {
+            BarbeariaDados.removerServico(id);
+            cachedServicos = BarbeariaDados.obterServicos();
+            atualizarListaServicos();
+            mostrarFeedback('Serviço removido com sucesso!', 'success');
+        } catch (e) {
+            mostrarFeedback(e.message, 'error');
+        }
     };
 
     // --- Profissionais ---
-    const professionalForm = document.getElementById('professional-form');
-    if (professionalForm) {
-        professionalForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const profissional = {
-                nome: document.getElementById('professional-name').value,
-                telefone: document.getElementById('professional-phone').value,
-                email: document.getElementById('professional-email').value,
-                especialidade: document.getElementById('professional-specialty').value
-            };
-            BarbeariaDados.adicionarProfissional(profissional);
-            atualizarListaProfissionais();
-            professionalForm.reset();
-        });
+    function inicializarProfissionais() {
+        const professionalForm = document.getElementById('professional-form');
+        if (professionalForm) {
+            professionalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const telefone = document.getElementById('professional-phone').value.trim();
+                const telefoneRegex = /^\+1 \(\d{3}\) \d{3}-\d{4}$/;
+                try {
+                    if (telefone && !telefoneRegex.test(telefone)) {
+                        throw new Error('Por favor, insira o telefone no formato: +1 (508) 939-1881');
+                    }
+                    const profissional = {
+                        nome: document.getElementById('professional-name').value.trim(),
+                        telefone: telefone,
+                        email: document.getElementById('professional-email').value.trim(),
+                        especialidade: document.getElementById('professional-specialty').value.trim()
+                    };
+                    if (!profissional.nome || !profissional.especialidade) {
+                        throw new Error('Nome e especialidade são obrigatórios.');
+                    }
+                    BarbeariaDados.adicionarProfissional(profissional);
+                    cachedProfissionais = BarbeariaDados.obterProfissionais();
+                    atualizarListaProfissionais();
+                    professionalForm.reset();
+                    mostrarFeedback('Profissional adicionado com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
     }
 
     function atualizarListaProfissionais() {
         const professionalsList = document.getElementById('professionals-list');
         if (professionalsList) {
-            const profissionais = BarbeariaDados.obterProfissionais();
             professionalsList.innerHTML = `
                 <h2>Profissionais Cadastrados</h2>
-                ${profissionais.map(profissional => `
+                ${cachedProfissionais.map(profissional => `
                     <div class="professional-card">
                         <div>
                             <p><strong>Nome:</strong> ${profissional.nome}</p>
-                            <p><strong>Telefone:</strong> ${profissional.telefone}</p>
-                            <p><strong>Email:</strong> ${profissional.email}</p>
+                            <p><strong>Telefone:</strong> ${profissional.telefone || 'N/A'}</p>
+                            <p><strong>Email:</strong> ${profissional.email || 'N/A'}</p>
                             <p><strong>Especialidade:</strong> ${profissional.especialidade}</p>
                         </div>
                         <button onclick="removerProfissional('${profissional.id}')">Remover</button>
@@ -601,40 +798,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.removerProfissional = (id) => {
-        BarbeariaDados.removerProfissional(id);
-        atualizarListaProfissionais();
+        try {
+            BarbeariaDados.removerProfissional(id);
+            cachedProfissionais = BarbeariaDados.obterProfissionais();
+            atualizarListaProfissionais();
+            atualizarDashboard();
+            mostrarFeedback('Profissional removido com sucesso!', 'success');
+        } catch (e) {
+            mostrarFeedback(e.message, 'error');
+        }
     };
 
     // --- Produtos ---
-    const productForm = document.getElementById('product-form');
-    if (productForm) {
-        productForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const produto = {
-                nome: document.getElementById('product-name').value,
-                preco: parseFloat(document.getElementById('product-price').value),
-                estoque: parseInt(document.getElementById('product-stock').value),
-                descricao: document.getElementById('product-description').value
-            };
-            BarbeariaDados.adicionarProduto(produto);
-            atualizarListaProdutos();
-            productForm.reset();
-        });
+    function inicializarProdutos() {
+        const productForm = document.getElementById('product-form');
+        if (productForm) {
+            productForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const preco = parseFloat(document.getElementById('product-price').value);
+                const estoque = parseInt(document.getElementById('product-stock').value);
+                try {
+                    if (isNaN(preco) || preco <= 0) {
+                        throw new Error('O preço do produto deve ser um valor positivo.');
+                    }
+                    if (isNaN(estoque) || estoque < 0) {
+                        throw new Error('O estoque deve ser um valor não negativo.');
+                    }
+                    const produto = {
+                        nome: document.getElementById('product-name').value.trim(),
+                        preco: preco,
+                        estoque: estoque,
+                        descricao: document.getElementById('product-description').value.trim()
+                    };
+                    if (!produto.nome) {
+                        throw new Error('O nome do produto é obrigatório.');
+                    }
+                    BarbeariaDados.adicionarProduto(produto);
+                    cachedProdutos = BarbeariaDados.obterProdutos();
+                    atualizarListaProdutos();
+                    productForm.reset();
+                    mostrarFeedback('Produto adicionado com sucesso!', 'success');
+                } catch (e) {
+                    mostrarFeedback(e.message, 'error');
+                }
+            });
+        }
     }
 
     function atualizarListaProdutos() {
         const productsList = document.getElementById('products-list');
         if (productsList) {
-            const produtos = BarbeariaDados.obterProdutos();
             productsList.innerHTML = `
-                <h2>Produtos vor Cadastrados</h2>
-                ${produtos.map(produto => `
+                <h2>Produtos Cadastrados</h2>
+                ${cachedProdutos.map(produto => `
                     <div class="product-card">
                         <div>
                             <p><strong>Nome:</strong> ${produto.nome}</p>
-                            <p><strong>Preço:</strong> R$ ${produto.preco.toFixed(2)}</p>
+                            <p><strong>Preço:</strong> US$ ${produto.preco.toFixed(2)}</p>
                             <p><strong>Estoque:</strong> ${produto.estoque}</p>
-                            <p><strong>Descrição:</strong> ${produto.descricao}</p>
+                            <p><strong>Descrição:</strong> ${produto.descricao || 'N/A'}</p>
                         </div>
                         <button onclick="removerProduto('${produto.id}')">Remover</button>
                     </div>
@@ -644,8 +866,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.removerProduto = (id) => {
-        BarbeariaDados.removerProduto(id);
-        atualizarListaProdutos();
+        try {
+            BarbeariaDados.removerProduto(id);
+            cachedProdutos = BarbeariaDados.obterProdutos();
+            atualizarListaProdutos();
+            mostrarFeedback('Produto removido com sucesso!', 'success');
+        } catch (e) {
+            mostrarFeedback(e.message, 'error');
+        }
     };
 
     // --- Financeiro ---
@@ -653,7 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const vendas = BarbeariaDados.obterVendas();
         const retiradas = BarbeariaDados.obterRetiradas();
         const hoje = new Date().toISOString().split('T')[0];
-        const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+        const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
         // Calcular totais
         const totais = vendas.reduce((acc, venda) => {
@@ -662,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 acc.hoje += venda.valor;
                 acc.metodos[venda.metodoPagamento] = (acc.metodos[venda.metodoPagamento] || 0) + venda.valor;
             }
-            if (venda.data >= primeiroDiaMes) {
+            if (dataVenda >= primeiroDiaMes) {
                 acc.mes += venda.valor;
             }
             acc.total += venda.valor;
@@ -670,16 +898,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { hoje: 0, mes: 0, total: 0, metodos: {} });
 
         // Atualizar cards principais
-        document.getElementById('today-sales').textContent = `R$ ${totais.hoje.toFixed(2)}`;
-        document.getElementById('month-sales').textContent = `R$ ${totais.mes.toFixed(2)}`;
-        document.getElementById('total-sales').textContent = `R$ ${totais.total.toFixed(2)}`;
-        document.getElementById('cash-balance').textContent = `R$ ${BarbeariaDados.calcularSaldoCaixa().toFixed(2)}`;
+        document.getElementById('today-sales').textContent = `US$ ${totais.hoje.toFixed(2)}`;
+        document.getElementById('month-sales').textContent = `US$ ${totais.mes.toFixed(2)}`;
+        document.getElementById('total-sales').textContent = `US$ ${totais.total.toFixed(2)}`;
+        document.getElementById('cash-balance').textContent = `US$ ${BarbeariaDados.calcularSaldoCaixa().toFixed(2)}`;
 
         // Atualizar relatórios por método de pagamento
-        document.getElementById('today-dinheiro').textContent = `R$ ${(totais.metodos.dinheiro || 0).toFixed(2)}`;
-        document.getElementById('today-cartao_credito').textContent = `R$ ${(totais.metodos.cartao_credito || 0).toFixed(2)}`;
-        document.getElementById('today-cartao_debito').textContent = `R$ ${(totais.metodos.cartao_debito || 0).toFixed(2)}`;
-        document.getElementById('today-pix').textContent = `R$ ${(totais.metodos.pix || 0).toFixed(2)}`;
+        document.getElementById('today-zelle').textContent = `US$ ${(totais.metodos.zelle || 0).toFixed(2)}`;
+        document.getElementById('today-venmo').textContent = `US$ ${(totais.metodos.venmo || 0).toFixed(2)}`;
+        document.getElementById('today-cash').textContent = `US$ ${(totais.metodos.cash || 0).toFixed(2)}`;
+
+        // Atualizar gorjetas
+        const gorjetasHoje = BarbeariaDados.obterGorjetasDiarias();
+        const gorjetasMes = BarbeariaDados.obterGorjetasMensais();
+        document.getElementById('today-tips').innerHTML = gorjetasHoje.map(g => `
+            <p><strong>${g.nome}:</strong> US$ ${g.gorjeta.toFixed(2)}</p>
+        `).join('') || '<p>Nenhuma gorjeta hoje.</p>';
+        document.getElementById('month-tips').innerHTML = gorjetasMes.map(g => `
+            <p><strong>${g.nome}:</strong> US$ ${g.gorjeta.toFixed(2)}</p>
+        `).join('') || '<p>Nenhuma gorjeta no mês.</p>';
 
         // Atualizar lista de retiradas
         const withdrawalsList = document.getElementById('withdrawals-list');
@@ -688,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
             withdrawalsList.innerHTML = retiradasHoje.length > 0 ? retiradasHoje.map(retirada => `
                 <div class="withdrawal-card">
                     <div>
-                        <p><strong>Valor:</strong> R$ ${retirada.valor.toFixed(2)}</p>
+                        <p><strong>Valor:</strong> US$ ${retirada.valor.toFixed(2)}</p>
                         <p><strong>Motivo:</strong> ${retirada.motivo}</p>
                         <p><strong>Data:</strong> ${new Date(retirada.data).toLocaleString()}</p>
                     </div>
@@ -722,7 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const rankingBarbeiros = Object.entries(vendasPorBarbeiro)
             .map(([id, dados]) => ({
-                profissional: BarbeariaDados.obterProfissionais().find(p => p.id === id),
+                profissional: cachedProfissionais.find(p => p.id === id),
                 ...dados
             }))
             .sort((a, b) => b.total - a.total);
@@ -731,8 +968,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .map((item, index) => `
                 <div class="ranking-item">
                     <span class="ranking-position">#${index + 1}</span>
-                    <span>${item.profissional.nome}</span>
-                    <span>R$ ${item.total.toFixed(2)}</span>
+                    <span>${item.profissional?.nome || 'Desconhecido'}</span>
+                    <span>US$ ${item.total.toFixed(2)}</span>
                     <span>${item.quantidade} vendas</span>
                 </div>
             `)
@@ -752,7 +989,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: 'Vendas por Dia',
                     data: vendasPorDia.map(v => v.valor),
                     borderColor: '#9b59b6',
-                    tension: 0.1
+                    backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                    tension: 0.3
                 }]
             },
             options: {
@@ -761,7 +999,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Vendas dos Últimos 7 Dias'
+                        text: 'Vendas dos Últimos 7 Dias',
+                        color: '#fff'
+                    },
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
                     }
                 }
             }
@@ -775,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
         new Chart(document.getElementById('barbers-chart'), {
             type: 'bar',
             data: {
-                labels: rankingBarbeiros.map(b => b.profissional.nome),
+                labels: rankingBarbeiros.map(b => b.profissional?.nome || 'Desconhecido'),
                 datasets: [{
                     label: 'Total de Vendas',
                     data: rankingBarbeiros.map(b => b.total),
@@ -788,7 +1050,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Vendas por Profissional'
+                        text: 'Vendas por Profissional',
+                        color: '#fff'
+                    },
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
                     }
                 }
             }
@@ -796,39 +1082,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Atualizar lista de vendas
         const salesList = document.getElementById('financial-sales-list');
-        salesList.innerHTML = vendas.reverse().map(venda => {
-            const profissional = BarbeariaDados.obterProfissionais().find(p => p.id === venda.profissionalId);
-            const item = venda.tipo === 'servico'
-                ? BarbeariaDados.obterServicos().find(s => s.id === venda.itemId)
-                : BarbeariaDados.obterProdutos().find(p => p.id === venda.itemId);
-            
-            return `
-                <div class="sale-card">
-                    <div>
-                        <p><strong>Tipo:</strong> ${venda.tipo === 'servico' ? 'Serviço' : 'Produto'}</p>
-                        <p><strong>Item:</strong> ${item.nome}</p>
-                        <p><strong>Profissional:</strong> ${profissional.nome}</p>
-                        <p><strong>Quantidade:</strong> ${venda.quantidade}</p>
-                        <p><strong>Valor:</strong> R$ ${venda.valor.toFixed(2)}</p>
-                        <p><strong>Método:</strong> ${formatarMetodoPagamento(venda.metodoPagamento)}</p>
-                        <p><strong>Data:</strong> ${new Date(venda.data).toLocaleString()}</p>
+        if (salesList) {
+            salesList.innerHTML = vendas.reverse().map(venda => {
+                const profissional = cachedProfissionais.find(p => p.id === venda.profissionalId);
+                const item = venda.tipo === 'servico'
+                    ? cachedServicos.find(s => s.id === venda.itemId)
+                    : cachedProdutos.find(p => p.id === venda.itemId);
+
+                return `
+                    <div class="sale-card">
+                        <div>
+                            <p><strong>Tipo:</strong> ${venda.tipo === 'servico' ? 'Serviço' : 'Produto'}</p>
+                            <p><strong>Item:</strong> ${item?.nome || 'Item desconhecido'}</p>
+                            <p><strong>Profissional:</strong> ${profissional?.nome || 'Desconhecido'}</p>
+                            <p><strong>Quantidade:</strong> ${venda.quantidade}</p>
+                            <p><strong>Valor:</strong> US$ ${venda.valor.toFixed(2)}</p>
+                            <p><strong>Gorjeta:</strong> US$ ${(venda.gorjeta || 0).toFixed(2)}</p>
+                            <p><strong>Método:</strong> ${formatarMetodoPagamento(venda.metodoPagamento)}</p>
+                            <p><strong>Data:</strong> ${new Date(venda.data).toLocaleString()}</p>
+                        </div>
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
     }
 
     // --- Exportar para PDF ---
-    function showFeedback(message, isError = false) {
-        const feedback = document.getElementById('feedback');
-        feedback.textContent = message;
-        feedback.className = `feedback ${isError ? 'error' : 'success'}`;
-        feedback.style.display = 'block';
-        setTimeout(() => {
-            feedback.style.display = 'none';
-        }, 3000);
-    }
-
     function exportarRelatorio() {
         try {
             const { jsPDF } = window.jspdf;
@@ -838,12 +1117,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const retiradas = BarbeariaDados.obterRetiradas();
             const startDate = document.getElementById('start-date').value || new Date().toISOString().split('T')[0];
             const endDate = document.getElementById('end-date').value || startDate;
-            const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+            const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
             // Validar datas
             if (new Date(endDate) < new Date(startDate)) {
-                showFeedback('A data final não pode ser anterior à data inicial.', true);
-                return;
+                throw new Error('A data final não pode ser anterior à data inicial.');
             }
 
             // Filtrar vendas e retiradas pelo período
@@ -861,33 +1139,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataVenda = venda.data.split('T')[0];
                 if (dataVenda >= startDate && dataVenda <= endDate) {
                     acc.periodo += venda.valor;
+                    acc.gorjetas += (venda.gorjeta || 0);
                     acc.metodos[venda.metodoPagamento] = (acc.metodos[venda.metodoPagamento] || 0) + venda.valor;
                 }
-                if (venda.data >= primeiroDiaMes) {
+                if (dataVenda >= primeiroDiaMes) {
                     acc.mes += venda.valor;
                 }
                 acc.total += venda.valor;
                 return acc;
-            }, { periodo: 0, mes: 0, total: 0, metodos: {} });
+            }, { periodo: 0, mes: 0, total: 0, gorjetas: 0, metodos: {} });
+
+            // Calcular gorjetas por profissional no período
+            const gorjetasPorProfissional = {};
+            vendasPeriodo.forEach(venda => {
+                if (venda.gorjeta > 0) {
+                    const profissional = cachedProfissionais.find(p => p.id === venda.profissionalId);
+                    if (profissional) {
+                        gorjetasPorProfissional[venda.profissionalId] = {
+                            nome: profissional.nome,
+                            total: (gorjetasPorProfissional[venda.profissionalId]?.total || 0) + venda.gorjeta
+                        };
+                    }
+                }
+            });
 
             // Configurar o PDF
             doc.setFontSize(16);
-            doc.text('Relatório JVBarberShop', 10, 10);
+            doc.text('Relatório Financeiro - JVBarberShop', 10, 10);
             doc.setFontSize(12);
             doc.text(`Período: ${startDate} a ${endDate}`, 10, 20);
 
             // Seção: Resumo
             doc.setFontSize(14);
-            doc.text('Resumo', 10, 30);
+            doc.text('Resumo Financeiro', 10, 30);
             const resumoData = [
-                [`Vendas (${startDate} a ${endDate})`, `R$ ${totais.periodo.toFixed(2)}`],
-                ['Vendas no Mês', `R$ ${totais.mes.toFixed(2)}`],
-                ['Total de Vendas', `R$ ${totais.total.toFixed(2)}`],
-                ['Saldo do Caixa', `R$ ${BarbeariaDados.calcularSaldoCaixa().toFixed(2)}`],
-                ['Vendas em Dinheiro (Período)', `R$ ${(totais.metodos.dinheiro || 0).toFixed(2)}`],
-                ['Vendas em Cartão de Crédito (Período)', `R$ ${(totais.metodos.cartao_credito || 0).toFixed(2)}`],
-                ['Vendas em Cartão de Débito (Período)', `R$ ${(totais.metodos.cartao_debito || 0).toFixed(2)}`],
-                ['Vendas em Pix (Período)', `R$ ${(totais.metodos.pix || 0).toFixed(2)}`]
+                [`Vendas no Período (${startDate} a ${endDate})`, `US$ ${totais.periodo.toFixed(2)}`],
+                [`Gorjetas no Período`, `US$ ${totais.gorjetas.toFixed(2)}`],
+                ['Vendas no Mês', `US$ ${totais.mes.toFixed(2)}`],
+                ['Total de Vendas (Histórico)', `US$ ${totais.total.toFixed(2)}`],
+                ['Saldo Atual do Caixa', `US$ ${BarbeariaDados.calcularSaldoCaixa().toFixed(2)}`],
+                ['Vendas em Zelle (Período)', `US$ ${(totais.metodos.zelle || 0).toFixed(2)}`],
+                ['Vendas em Venmo (Período)', `US$ ${(totais.metodos.venmo || 0).toFixed(2)}`],
+                ['Vendas em Cash (Período)', `US$ ${(totais.metodos.cash || 0).toFixed(2)}`]
             ];
             doc.autoTable({
                 head: [['Descrição', 'Valor']],
@@ -898,28 +1191,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 headStyles: { fillColor: [156, 89, 182], textColor: [255, 255, 255] }
             });
 
-            // Seção: Vendas
+            // Seção: Vendas por Método de Pagamento
             let finalY = doc.lastAutoTable.finalY + 10;
             doc.setFontSize(14);
-            doc.text('Vendas', 10, finalY);
+            doc.text('Vendas por Método de Pagamento', 10, finalY);
+            const vendasPorMetodo = [
+                ['Zelle', `US$ ${(totais.metodos.zelle || 0).toFixed(2)}`],
+                ['Venmo', `US$ ${(totais.metodos.venmo || 0).toFixed(2)}`],
+                ['Cash', `US$ ${(totais.metodos.cash || 0).toFixed(2)}`]
+            ];
+            doc.autoTable({
+                head: [['Método', 'Total']],
+                body: vendasPorMetodo,
+                startY: finalY + 5,
+                theme: 'grid',
+                styles: { fontSize: 10, textColor: [0, 0, 0] },
+                headStyles: { fillColor: [156, 89, 182], textColor: [255, 255, 255] }
+            });
+
+            // Seção: Detalhes das Vendas
+            finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(14);
+            doc.text('Detalhes das Vendas', 10, finalY);
             const vendasData = vendasPeriodo.map(venda => {
-                const profissional = BarbeariaDados.obterProfissionais().find(p => p.id === venda.profissionalId);
+                const profissional = cachedProfissionais.find(p => p.id === venda.profissionalId);
                 const item = venda.tipo === 'servico'
-                    ? BarbeariaDados.obterServicos().find(s => s.id === venda.itemId)
-                    : BarbeariaDados.obterProdutos().find(p => p.id === venda.itemId);
+                    ? cachedServicos.find(s => s.id === venda.itemId)
+                    : cachedProdutos.find(p => p.id === venda.itemId);
                 return [
                     venda.tipo === 'servico' ? 'Serviço' : 'Produto',
-                    item.nome,
-                    profissional.nome,
+                    item?.nome || 'Item desconhecido',
+                    profissional?.nome || 'Desconhecido',
                     venda.quantidade,
-                    `R$ ${venda.valor.toFixed(2)}`,
+                    `US$ ${venda.valor.toFixed(2)}`,
+                    `US$ ${(venda.gorjeta || 0).toFixed(2)}`,
                     formatarMetodoPagamento(venda.metodoPagamento),
                     new Date(venda.data).toLocaleString()
                 ];
             });
             doc.autoTable({
-                head: [['Tipo', 'Item', 'Profissional', 'Quantidade', 'Valor', 'Método', 'Data']],
-                body: vendasData,
+                head: [['Tipo', 'Item', 'Profissional', 'Quantidade', 'Valor', 'Gorjeta', 'Método', 'Data']],
+                body: vendasData.length > 0 ? vendasData : [['Nenhuma venda no período', '', '', '', '', '', '', '']],
+                startY: finalY + 5,
+                theme: 'grid',
+                styles: { fontSize: 10, textColor: [0, 0, 0] },
+                headStyles: { fillColor: [156, 89, 182], textColor: [255, 255, 255] }
+            });
+
+            // Seção: Gorjetas por Profissional
+            finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(14);
+            doc.text('Gorjetas por Profissional', 10, finalY);
+            const gorjetasData = Object.values(gorjetasPorProfissional).map(prof => [
+                prof.nome,
+                `US$ ${prof.total.toFixed(2)}`
+            ]);
+            doc.autoTable({
+                head: [['Profissional', 'Total de Gorjetas']],
+                body: gorjetasData.length > 0 ? gorjetasData : [['Nenhuma gorjeta registrada', 'US$ 0.00']],
                 startY: finalY + 5,
                 theme: 'grid',
                 styles: { fontSize: 10, textColor: [0, 0, 0] },
@@ -931,13 +1260,13 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.setFontSize(14);
             doc.text('Retiradas', 10, finalY);
             const retiradasData = retiradasPeriodo.map(retirada => [
-                `R$ ${retirada.valor.toFixed(2)}`,
+                `US$ ${retirada.valor.toFixed(2)}`,
                 retirada.motivo,
                 new Date(retirada.data).toLocaleString()
             ]);
             doc.autoTable({
                 head: [['Valor', 'Motivo', 'Data']],
-                body: retiradasData,
+                body: retiradasData.length > 0 ? retiradasData : [['Nenhuma retirada no período', '', '']],
                 startY: finalY + 5,
                 theme: 'grid',
                 styles: { fontSize: 10, textColor: [0, 0, 0] },
@@ -948,10 +1277,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const dataInicio = startDate.replace(/-/g, '') || 'sem_data';
             const dataFim = endDate.replace(/-/g, '') || 'sem_data';
             doc.save(`Relatorio_JVBarberShop_${dataInicio}_${dataFim}.pdf`);
-            showFeedback('Relatório exportado com sucesso!');
+            mostrarFeedback('Relatório exportado com sucesso!', 'success');
         } catch (e) {
             console.error('Erro ao exportar para PDF:', e);
-            showFeedback('Erro ao exportar relatório: ' + e.message, true);
+            mostrarFeedback('Erro ao exportar relatório: ' + e.message, 'error');
         }
     }
 
@@ -962,6 +1291,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Inicializar
+    inicializarNavegacao();
+    inicializarBackup();
+    inicializarAgendamentos();
+    inicializarCaixa();
+    inicializarRetiradas();
+    inicializarVendas();
+    inicializarClientes();
+    inicializarServicos();
+    inicializarProfissionais();
+    inicializarProdutos();
     atualizarDashboard();
     atualizarListaClientes();
     atualizarListaServicos();
