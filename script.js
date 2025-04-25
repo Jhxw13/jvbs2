@@ -883,7 +883,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const hoje = new Date().toISOString().split('T')[0];
         const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
-        // Calcular totais
+        // Calcular a data de início da semana (segunda-feira)
+        const hojeDate = new Date();
+        const diaSemana = hojeDate.getDay(); // 0 (domingo) a 6 (sábado)
+        const primeiroDiaSemana = new Date(hojeDate);
+        primeiroDiaSemana.setDate(hojeDate.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1)); // Ajusta para segunda-feira
+        const primeiroDiaSemanaStr = primeiroDiaSemana.toISOString().split('T')[0];
+
+        // Calcular totais gerais
         const totais = vendas.reduce((acc, venda) => {
             const dataVenda = venda.data.split('T')[0];
             if (dataVenda === hoje) {
@@ -893,15 +900,48 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dataVenda >= primeiroDiaMes) {
                 acc.mes += venda.valor;
             }
+            if (dataVenda >= primeiroDiaSemanaStr) {
+                acc.semana += venda.valor;
+            }
             acc.total += venda.valor;
             return acc;
-        }, { hoje: 0, mes: 0, total: 0, metodos: {} });
+        }, { hoje: 0, mes: 0, semana: 0, total: 0, metodos: {} });
+
+        // Calcular vendas por barbeiro na semana
+        const vendasPorBarbeiroSemana = {};
+        vendas.forEach(venda => {
+            const dataVenda = venda.data.split('T')[0];
+            if (dataVenda >= primeiroDiaSemanaStr) {
+                const profissional = cachedProfissionais.find(p => p.id === venda.profissionalId);
+                const nome = profissional ? profissional.nome : 'Desconhecido';
+                if (!vendasPorBarbeiroSemana[venda.profissionalId]) {
+                    vendasPorBarbeiroSemana[venda.profissionalId] = { nome, total: 0 };
+                }
+                vendasPorBarbeiroSemana[venda.profissionalId].total += venda.valor;
+            }
+        });
 
         // Atualizar cards principais
         document.getElementById('today-sales').textContent = `US$ ${totais.hoje.toFixed(2)}`;
         document.getElementById('month-sales').textContent = `US$ ${totais.mes.toFixed(2)}`;
+        document.getElementById('week-sales').textContent = `US$ ${totais.semana.toFixed(2)}`;
         document.getElementById('total-sales').textContent = `US$ ${totais.total.toFixed(2)}`;
         document.getElementById('cash-balance').textContent = `US$ ${BarbeariaDados.calcularSaldoCaixa().toFixed(2)}`;
+
+        // Atualizar vendas por barbeiro na semana
+        const weeklyBarberSales = document.getElementById('weekly-barber-sales');
+        if (weeklyBarberSales) {
+            weeklyBarberSales.innerHTML = `
+                <h2>Vendas por Profissional (Semana)</h2>
+                ${Object.values(vendasPorBarbeiroSemana).length > 0 ? 
+                    Object.values(vendasPorBarbeiroSemana).map(barbeiro => `
+                        <div class="barber-sales-card">
+                            <p><strong>${barbeiro.nome}</strong>: US$ ${barbeiro.total.toFixed(2)}</p>
+                        </div>
+                    `).join('') : 
+                    '<p>Nenhuma venda registrada nesta semana.</p>'}
+            `;
+        }
 
         // Atualizar relatórios por método de pagamento
         document.getElementById('today-zelle').textContent = `US$ ${(totais.metodos.zelle || 0).toFixed(2)}`;
@@ -1119,6 +1159,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const endDate = document.getElementById('end-date').value || startDate;
             const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
+            // Calcular a data de início da semana (segunda-feira)
+            const hojeDate = new Date();
+            const diaSemana = hojeDate.getDay(); // 0 (domingo) a 6 (sábado)
+            const primeiroDiaSemana = new Date(hojeDate);
+            primeiroDiaSemana.setDate(hojeDate.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
+            const primeiroDiaSemanaStr = primeiroDiaSemana.toISOString().split('T')[0];
+
             // Validar datas
             if (new Date(endDate) < new Date(startDate)) {
                 throw new Error('A data final não pode ser anterior à data inicial.');
@@ -1148,6 +1195,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 acc.total += venda.valor;
                 return acc;
             }, { periodo: 0, mes: 0, total: 0, gorjetas: 0, metodos: {} });
+
+            // Calcular vendas por barbeiro na semana
+            const vendasPorBarbeiroSemana = {};
+            vendas.forEach(venda => {
+                const dataVenda = venda.data.split('T')[0];
+                if (dataVenda >= primeiroDiaSemanaStr) {
+                    const profissional = cachedProfissionais.find(p => p.id === venda.profissionalId);
+                    const nome = profissional ? profissional.nome : 'Desconhecido';
+                    if (!vendasPorBarbeiroSemana[venda.profissionalId]) {
+                        vendasPorBarbeiroSemana[venda.profissionalId] = { nome, total: 0 };
+                    }
+                    vendasPorBarbeiroSemana[venda.profissionalId].total += venda.valor;
+                }
+            });
 
             // Calcular gorjetas por profissional no período
             const gorjetasPorProfissional = {};
@@ -1249,6 +1310,23 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.autoTable({
                 head: [['Profissional', 'Total de Gorjetas']],
                 body: gorjetasData.length > 0 ? gorjetasData : [['Nenhuma gorjeta registrada', 'US$ 0.00']],
+                startY: finalY + 5,
+                theme: 'grid',
+                styles: { fontSize: 10, textColor: [0, 0, 0] },
+                headStyles: { fillColor: [156, 89, 182], textColor: [255, 255, 255] }
+            });
+
+            // Seção: Vendas por Profissional na Semana
+            finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(14);
+            doc.text(`Vendas por Profissional na Semana (a partir de ${primeiroDiaSemanaStr})`, 10, finalY);
+            const vendasSemanaData = Object.values(vendasPorBarbeiroSemana).map(barbeiro => [
+                barbeiro.nome,
+                `US$ ${barbeiro.total.toFixed(2)}`
+            ]);
+            doc.autoTable({
+                head: [['Profissional', 'Total de Vendas']],
+                body: vendasSemanaData.length > 0 ? vendasSemanaData : [['Nenhuma venda registrada na semana', 'US$ 0.00']],
                 startY: finalY + 5,
                 theme: 'grid',
                 styles: { fontSize: 10, textColor: [0, 0, 0] },
