@@ -189,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
         function atualizarStatusCaixa() {
             const caixa = BarbeariaDados.obterCaixa();
             const hoje = new Date().toISOString().split('T')[0];
-            if (caixa && caixa.aberto && caixa.data === hoje) {
+
+            // Verificar se o caixa está aberto, independentemente da data, para manter o estado após refresh
+            if (caixa && caixa.aberto) {
                 cashStatus.textContent = `Caixa Aberto (US$ ${caixa.valorInicial.toFixed(2)})`;
                 cashStatus.classList.remove('cash-closed');
                 cashStatus.classList.add('cash-open');
@@ -219,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const caixa = BarbeariaDados.obterCaixa();
                 if (!caixa || !caixa.aberto) {
-                    throw new Error('O caixa já está fechado ou não foi aberto hoje.');
+                    throw new Error('O caixa já está fechado ou não foi aberto.');
                 }
                 const saldoFinal = BarbeariaDados.calcularSaldoCaixa();
                 BarbeariaDados.fecharCaixa(saldoFinal);
@@ -252,6 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (closeCashBtn) {
             closeCashBtn.addEventListener('click', fecharCaixa);
         }
+
+        // Chamar a atualização do status do caixa ao inicializar
+        atualizarStatusCaixa();
     }
 
     // --- PDV: Controle de Retiradas ---
